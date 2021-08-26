@@ -18,11 +18,13 @@ export QuadrateSystem, TriangularSystem
 struct QuadrateSystem{T} <: Abstract2DModel{T}
     brillouin :: Basics.AbstractRectangle{:AXISSQUARE}
     dispersion :: Vector{Function}
+    bandnum :: Int64
     kadd :: Function
     QuadrateSystem{T}(disps) where T = begin
         new{T}(
             Square(Point2D(0., 0.), 2pi),
             disps,
+            length(disps),
             square_kadd
         )
     end
@@ -54,11 +56,13 @@ b1=π(-2, 2/√3); b2=π(2, 2/√3);
 struct TriangularSystem{T} <: Abstract2DModel{T}
     brillouin :: Basics.AbstractHexagon{:EQ}
     dispersion :: Vector{Function}
+    bandnum :: Int64
     kadd :: Function
     TriangularSystem{T}(disps) where T = begin
         new{T}(
             EqHexagon(Point2D(0., 0.), 4pi/3.0),
             disps,
+            length(disps),
             hexagon_kadd
         )
     end
@@ -98,6 +102,24 @@ function hexagon_kadd(pt1::Point2D, pt2::Point2D)
 end
 
 
+
+#
+#一些内建的模型
+#不能在include上面加"""document"""
+
+include("quadrate_lattice.jl")
+export common_square_lattice
+
+
+include("triangular_lattice.jl")
+export common_triangle_lattice
+
+
+
+include("surface.jl")
+
+
+include("patch.jl")
 
 end
 

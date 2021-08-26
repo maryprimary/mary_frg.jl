@@ -44,8 +44,8 @@ function split_square(squ::Basics.AbstractRectangle{:AXISSQUARE}, nps::Int64)
     #     0  1  ...  nps [idx1]
     for idx12 in CartesianIndices(lsqus)
         idx1, idx2 = Tuple(idx12)
-        xct = (idx1 + 0.5) * width + statx
-        yct = (idx2 + 0.5) * width + staty
+        xct = (idx1 - 0.5) * width + statx
+        yct = (idx2 - 0.5) * width + staty
         lsqus[idx1, idx2] = Square(Point2D(xct, yct), width)
     end
     #将每个小正方切分

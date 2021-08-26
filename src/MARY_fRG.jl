@@ -13,4 +13,6 @@ include("helpers/refine.jl")
 include("fermi/fermi.jl")
 
 
+include("flowequ/flow_equation.jl")
+
 end # module

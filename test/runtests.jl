@@ -22,3 +22,14 @@ include("test_triangulated/test_hexagon.jl")
 
 #refine
 #include("test_triangulated/test_refine.jl")
+
+
+include("test_fermi/test_brlu.jl")
+
+include("test_fermi/test_latt.jl")
+
+
+include("test_flowequ/test_bubble.jl")
+
+include("test_flowequ/test_dl_ec.jl")
+
