@@ -10,8 +10,9 @@ include("helpers/triangulated.jl")
 
 include("helpers/refine.jl")
 
-include("fermi/fermi.jl")
+include("helpers/interactions.jl")
 
+include("fermi/fermi.jl")
 
 include("flowequ/flow_equation.jl")
 

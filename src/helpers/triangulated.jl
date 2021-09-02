@@ -9,8 +9,9 @@ using ..Basics
 export split_square, split_hexagon
 export save_triangulated, load_triangulated
 
+export TYPE_LADJS
 
-
+const TYPE_LADJS{P} = Vector{Tuple{Union{Missing, P}, Union{Missing, P}, Union{Missing, P}}}
 
 """
 将一个正方形切分成4个直角三角形

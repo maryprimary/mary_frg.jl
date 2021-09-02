@@ -165,7 +165,7 @@ function patches_under_vonhove(
     ::T, disp, pnum
     ) where T <: Union{Basics.AbstractRectangle{:AXISSQUARE}, Basics.AbstractHexagon{:EQ}}
     dang = 2pi / pnum
-    radius = T == Basics.AbstractHexagon{:EQ} ? 4pi/3 : pi
+    radius = T == Basics.AbstractHexagon{:EQ} ? 2pi*sqrt(3)/3 : pi
     sang = T == Basics.AbstractHexagon{:EQ} ? -pi / 6 : 0
     patches = Vector{Point2D}(undef, pnum)
     for idx = 1:1:pnum

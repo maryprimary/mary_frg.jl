@@ -72,7 +72,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k2(b2), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval)
+    Threads.@threads for idxs in CartesianIndices(bubbval_fs)
         alpha, beta, b2, b3, i_n, i2, i3 = Tuple(idxs)
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
         qfs = Γ4.model.kadd(k3, -k2)
@@ -107,7 +107,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k1(b1), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval)
+    Threads.@threads for idxs in CartesianIndices(bubbval_ex)
         alpha, beta, b1, b3, i_n, i1, i3 = Tuple(idxs)
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
         qex = Γ4.model.kadd(k1, -k3)
