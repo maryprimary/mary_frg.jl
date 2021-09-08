@@ -16,23 +16,25 @@ function run_rftf()
     Γ4.V .+= 1.0
     lval = 0.
     lstep = 0.01
-    #plt = draw_points([tri.center for tri in Γ4.ltris])
-    #draw_polygon(Γ4.ltris; pcidx=Γ4.lpats)
-    #@savepng plt "brlu"*string(lval)
-    for idx in 1:1:1501
+    plt = draw_points([tri.center for tri in Γ4.ltris])
+    @savepng plt "brlu"*string(lval)
+    for idx in 1:1:2501
         if idx % 10 == 1
-            oldΓ4 = Γ4
-            Γ4 = TFGamma4_refine_ltris_mt(Γ4, lval)
-            if !(oldΓ4 === Γ4)
+            newΓ4 = TFGamma4_refine_ltris_mt(Γ4, lval)
+            #重复到不需要再refine
+            while !(newΓ4 === Γ4)
+                Γ4 = newΓ4
+                newΓ4 = TFGamma4_refine_ltris_mt(Γ4, lval)
                 println("refine")
                 println(length(Γ4.ltris))
-                #plt = draw_points([tri.center for tri in Γ4.ltris])
-                #@savepng plt "brlu"*string(lval)
+                plt = draw_points([tri.center for tri in Γ4.ltris])
+                @savepng plt "brlu"*string(lval)
             end
+            Γ4 = newΓ4
         end
-        #bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4, lval)
-        #dl = dl_tf_mt(Γ4, bubb_pp, bubb_fs, bubb_ex)
-        #Γ4.V .+= dl .* lstep
+        bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4, lval)
+        dl = dl_tf_mt(Γ4, bubb_pp, bubb_fs, bubb_ex)
+        Γ4.V .+= dl .* lstep
         if idx % 50 == 1
             plt = heatmap(Γ4.V[1, 1, 1, 1, :, :, 1])
             png(plt, "Gamma4"*string(idx))

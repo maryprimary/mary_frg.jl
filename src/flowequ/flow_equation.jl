@@ -28,6 +28,7 @@ export dl_tf_mt
 
 
 export TFGamma4_refine_ltris_mt
+export TFGamma4_reweight_ltris_mt
 
 """
 最后一个动量可以由动量守恒确定
@@ -323,9 +324,10 @@ function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
     #
     #println(bval_mat)
     newltris::Vector{P} = []
+    cert = length(Γ4.ltris) > 1000000 ? 5 : 15
     for (idx, tri) in enumerate(Γ4.ltris)
         #如果还有可能有贡献
-        if minimum(bval_mat[idx, :]) < 25
+        if minimum(bval_mat[idx, :]) < cert
             push!(newltris, tri)
         end
     end
@@ -361,9 +363,59 @@ end
 """
 将Γ4中的ltris，靠近费米面的切割的更加细致
 """
-#function ()
-#   
-#end
+function TFGamma4_reweight_ltris_mt(Γ4::Gamma4{T, P}, slval, lstep, itime
+    ) where {T, P}
+    #
+    if !isnothing(Γ4.ladjs)
+        @warn "会丢失ladjs的信息"
+    end
+    #切分离费米面近的
+    ltris = Γ4.ltris
+    for lidx in 1:1:itime
+        lval = slval + (lidx - 1) * lstep
+        lamb = Γ4.λ_0 * exp(-lval)
+        newltris::Vector{P} = []
+        for tri in ltris
+            #如果足够贴近费米面
+            engs = [Γ4.model.dispersion[bidx](tri.center.x, tri.center.y) / lamb
+            for bidx in 1:1:Γ4.model.bandnum]
+            absengs = abs.(engs)
+            if minimum(absengs) < 1.0
+                ftris = split_triangle(tri)
+                push!(newltris, ftris[1])
+                push!(newltris, ftris[2])
+                push!(newltris, ftris[3])
+                push!(newltris, ftris[4])
+            else
+                push!(newltris, tri)
+            end
+        end
+        ltris = newltris
+    end
+    #
+    refltris = ltris
+    #重新计算一下所属的patch，可能会发生变化
+    reflpats = group_ltris_into_patches_mt(refltris, Γ4.model.brillouin, Γ4.patchnum)
+    #重新计算一下每个patch包含的三角形
+    ltris_pat = Vector{typeof(refltris)}(undef, Γ4.patchnum)
+    for idx in 1:1:Γ4.patchnum
+        ltris_pat[idx] = []
+    end
+    #
+    for (tri, pat) in zip(refltris, reflpats)
+        push!(ltris_pat[pat], tri)
+    end
+    #
+    return Gamma4(
+        Γ4.model,
+        Γ4.λ_0,
+        Γ4.V,
+        Γ4.k4tab,
+        Γ4.patchnum,
+        Γ4.patches,
+        refltris, reflpats, nothing, ltris_pat
+    )
+end
 
 
 
