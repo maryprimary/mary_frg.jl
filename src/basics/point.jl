@@ -28,7 +28,7 @@ Base.:*(scal::N, pt1::Point2D) where N <: Real = Point2D(scal*pt1.x, scal*pt1.y)
 """
 两个点的中点
 """
-function middle_point(pt1::Point2D, pt2::Point2D; sc1=0.5, sc2=0.5)
+function middle_point(pt1::Point2D, pt2::Point2D; sc1=0.5, sc2=0.5) :: Point2D
     scs = sc1 + sc2
     xpt = pt1.x * sc1 + pt2.x * sc2
     xpt /= scs

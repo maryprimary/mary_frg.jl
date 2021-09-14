@@ -11,9 +11,14 @@ using MARY_fRG.Drawers
     plt = draw_lines(Γ4.model.brillouin.edges)
     draw_polygon!(plt, Γ4.ltris; pcidx=Γ4.lpats)
     @savepng plt "refine1"
-    newΓ4 = TFGamma4_refine_ltris_mt(Γ4, 5.0)
-    plt = draw_lines(newΓ4.model.brillouin.edges)
-    draw_polygon!(plt, newΓ4.ltris; pcidx=newΓ4.lpats)
-    @savepng plt "refine2"
+    #
+    for idx in 2:1:9
+        newΓ4 = TFGamma4_refine_ltris_mt(Γ4, 5.0)
+        println(idx, ": ", length(newΓ4.ltris))
+        plt = draw_lines(newΓ4.model.brillouin.edges)
+        draw_polygon!(plt, newΓ4.ltris; pcidx=newΓ4.lpats)
+        @savepng plt "refine"*string(idx)
+        Γ4 = newΓ4
+    end
 end
 
