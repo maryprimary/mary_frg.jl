@@ -28,6 +28,7 @@ export dl_tf_mt
 
 
 export TFGamma4_refine_ltris_mt
+export TFGamma4_reweight_ltris_mt
 
 """
 最后一个动量可以由动量守恒确定
@@ -291,49 +292,150 @@ end
 
 
 """
+取掉离费米面太远的
+"""
+function fliter_away_surface(Γ4::Gamma4{T, P}, lval) where {T, P}
+    lamb = Γ4.λ_0 * exp(-lval)
+    resltris::Vector{P} = []
+    reslpats::Vector{Int64} = []
+    cert = length(Γ4.ltris) > 1000000 ? 5 : 15
+    for (tri, pat) in zip(Γ4.ltris, Γ4.lpats)
+        engs = [Γ4.model.dispersion[bidx](
+            tri.center.x, tri.center.y) / lamb for bidx in 1:1:Γ4.model.bandnum
+        ]
+        #如果还有可能有贡献
+        if minimum(abs.(engs)) < cert
+            push!(resltris, tri)
+            push!(reslpats, pat)
+        end
+    end
+    ltris_pat = Vector{typeof(resltris)}(undef, Γ4.patchnum)
+    for idx in 1:1:Γ4.patchnum
+        ltris_pat[idx] = []
+    end
+    #
+    for (tri, pat) in zip(resltris, reslpats)
+        push!(ltris_pat[pat], tri)
+    end
+    #
+    return Gamma4(
+        Γ4.model,
+        Γ4.λ_0,
+        Γ4.V,
+        Γ4.k4tab,
+        Γ4.patchnum,
+        Γ4.patches,
+        resltris, reslpats, nothing, ltris_pat
+    )
+end
+
+
+"""
 将Γ4中的ltris进行重新的分割
 """
-function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
+function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval; maxnum=2500000) where {T, P}
     #
     if !isnothing(Γ4.ladjs)
         @warn "会丢失ladjs的信息"
     end
+    if length(Γ4.ltris) >= maxnum
+        @warn "已经超过最大数量"
+        return fliter_away_surface(Γ4, lval)
+    end
     #
-    minval = Vector{Float64}(undef, Γ4.model.bandnum)
     lamb = Γ4.λ_0 * exp(-lval)
-    bval_mat = Matrix{Float64}(undef, length(Γ4.ltris), Γ4.model.bandnum)
-    for bidx in 1:1:Γ4.model.bandnum
-        min_band = 100.
-        for (idx, tri) in enumerate(Γ4.ltris)
-            bval = Γ4.model.dispersion[bidx](tri.center.x, tri.center.y)
-            bval = abs(bval / lamb)
-            bval_mat[idx, bidx] = bval
-            if bval < min_band
-                min_band = bval
+    max2suf = Vector{Float64}(undef, Γ4.model.bandnum)
+    for bidx in 1:1:length(max2suf)
+        disp = Γ4.model.dispersion[bidx]
+        suf = const_energy_triangle(Γ4.ltris, 0., disp)
+        engs = zeros(length(suf))
+        for (idx, tri) in enumerate(suf)
+            center = tri.center
+            engs[idx] = abs(disp(center.x, center.y)) / lamb
+        end
+        max2suf[bidx] = maximum(engs)
+    end
+    #如果已经足够贴近费米面，直接返回原来的
+    if maximum(max2suf) < 0.0001
+        return fliter_away_surface(Γ4, lval)
+    end
+    @info string(length(Γ4.ltris))*" -> "*string(4*length(Γ4.ltris))
+    #
+    #将所有的nltris进行重新的切分，切分一定是切成4个
+    spltris = Vector{P}(undef, 4*length(Γ4.ltris))
+    for (idx, tri) in enumerate(Γ4.ltris)
+        spltris[4*idx-3:4*idx] = split_triangle(tri)
+    end
+    #去掉离得太远的
+    resltris::Vector{P} = []
+    cert = length(spltris) > 1000000 ? 5 : 15
+    for tri in spltris
+        engs = [Γ4.model.dispersion[bidx](
+            tri.center.x, tri.center.y) / lamb for bidx in 1:1:Γ4.model.bandnum
+        ]
+        #如果还有可能有贡献
+        if minimum(abs.(engs)) < cert
+            push!(resltris, tri)
+        end
+    end
+    #重新计算一下所属的patch，可能会发生变化
+    reslpats = group_ltris_into_patches_mt(resltris, Γ4.model.brillouin, Γ4.patchnum)
+    #重新计算一下每个patch包含的三角形
+    ltris_pat = Vector{typeof(resltris)}(undef, Γ4.patchnum)
+    for idx in 1:1:Γ4.patchnum
+        ltris_pat[idx] = []
+    end
+    #
+    for (tri, pat) in zip(resltris, reslpats)
+        push!(ltris_pat[pat], tri)
+    end
+    #
+    return Gamma4(
+        Γ4.model,
+        Γ4.λ_0,
+        Γ4.V,
+        Γ4.k4tab,
+        Γ4.patchnum,
+        Γ4.patches,
+        resltris, reslpats, nothing, ltris_pat
+    )
+end
+
+
+"""
+将Γ4中的ltris，靠近费米面的切割的更加细致
+"""
+function TFGamma4_reweight_ltris_mt(Γ4::Gamma4{T, P}, slval, lstep, itime
+    ) where {T, P}
+    #
+    if !isnothing(Γ4.ladjs)
+        @warn "会丢失ladjs的信息"
+    end
+    #切分离费米面近的
+    ltris = Γ4.ltris
+    for lidx in 1:1:itime
+        lval = slval + (lidx - 1) * lstep
+        lamb = Γ4.λ_0 * exp(-lval)
+        newltris::Vector{P} = []
+        for tri in ltris
+            #如果足够贴近费米面
+            engs = [Γ4.model.dispersion[bidx](tri.center.x, tri.center.y) / lamb
+            for bidx in 1:1:Γ4.model.bandnum]
+            absengs = abs.(engs)
+            if minimum(absengs) < 1.0
+                ftris = split_triangle(tri)
+                push!(newltris, ftris[1])
+                push!(newltris, ftris[2])
+                push!(newltris, ftris[3])
+                push!(newltris, ftris[4])
+            else
+                push!(newltris, tri)
             end
         end
-        minval[bidx] = min_band
-    end
-    #println(minval)
-    #如果没有足够贴近费米面的，则重新切分一个更细致的
-    #ltris
-    if maximum(minval) < 0.0001
-        return Γ4
+        ltris = newltris
     end
     #
-    #println(bval_mat)
-    newltris::Vector{P} = []
-    for (idx, tri) in enumerate(Γ4.ltris)
-        #如果还有可能有贡献
-        if minimum(bval_mat[idx, :]) < 25
-            push!(newltris, tri)
-        end
-    end
-    #将所有的nltris进行重新的切分，切分一定是切成4个
-    refltris = Vector{P}(undef, 4*length(newltris))
-    for (idx, tri) in enumerate(newltris)
-        refltris[4*idx-3:4*idx] = split_triangle(tri)
-    end
+    refltris = ltris
     #重新计算一下所属的patch，可能会发生变化
     reflpats = group_ltris_into_patches_mt(refltris, Γ4.model.brillouin, Γ4.patchnum)
     #重新计算一下每个patch包含的三角形
@@ -356,14 +458,6 @@ function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         refltris, reflpats, nothing, ltris_pat
     )
 end
-
-
-"""
-将Γ4中的ltris，靠近费米面的切割的更加细致
-"""
-#function ()
-#   
-#end
 
 
 

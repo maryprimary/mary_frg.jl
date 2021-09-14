@@ -76,7 +76,8 @@ function find_adjs_by_adjoint(ltris::Vector{T}) where T <: Basics.AbstractTriang
     for idx in 1:1:length(ltris)
         ladjs[idx] = (missing, missing, missing)
     end
-    for (idx, tri) in enumerate(ltris)
+    @Threads.threads for idx in 1:1:length(ltris)
+        tri = ltris[idx]
         fadjs = Vector{Union{Missing, T}}(undef, 3)
         fadjs[:] = [missing, missing, missing]
         for (adjidx, adjtri) in enumerate(ltris)

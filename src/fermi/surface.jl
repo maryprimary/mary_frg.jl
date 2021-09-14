@@ -9,6 +9,7 @@ using ..Basics
 
 
 export const_energy_line, const_energy_line_in_patches
+export const_energy_triangle
 
 """
 获取等能面
@@ -85,6 +86,33 @@ function const_energy_line_in_patches(
     end
     return edges, epidx
 end
+
+
+"""
+穿过费米面的小三角
+"""
+function const_energy_triangle(
+    ltris::Vector{T},
+    eng::Float64,
+    disp::Function) where T <: Basics.AbstractTriangle
+    #
+    #如果一个小三角型的三个顶点的能量符号不同，那就是穿过了费米面
+    #
+    edges::Vector{T} = []
+    for tri in ltris
+        ver1 = tri.vertex[1]
+        sgn1 = sign(disp(ver1.x, ver1.y)-eng)
+        ver2 = tri.vertex[2]
+        sgn2 = sign(disp(ver2.x, ver2.y)-eng)
+        ver3 = tri.vertex[3]
+        sgn3 = sign(disp(ver3.x, ver3.y)-eng)
+        if sgn1 != sgn2 || sgn1 != sgn3
+            push!(edges, tri)
+        end
+    end
+    return edges
+end
+
 
 
 end # end module
