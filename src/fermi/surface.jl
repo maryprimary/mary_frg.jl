@@ -8,8 +8,10 @@ using ..Fermi
 using ..Basics
 
 
+export @onsurface
 export const_energy_line, const_energy_line_in_patches
 export const_energy_triangle
+
 
 """
 获取等能面
@@ -89,6 +91,23 @@ end
 
 
 """
+判断小三角是否穿过费米面
+"""
+macro onsurface(tri, disp, eng)
+    return esc(quote
+        ver1 = ($tri).vertex[1]
+        sgn1 = sign($disp(ver1.x, ver1.y)-$eng)
+        ver2 = ($tri).vertex[2]
+        sgn2 = sign($disp(ver2.x, ver2.y)-$eng)
+        ver3 = ($tri).vertex[3]
+        sgn3 = sign($disp(ver3.x, ver3.y)-$eng)
+        sgn1 != sgn2 || sgn1 != sgn3
+    end)
+end
+
+
+
+"""
 穿过费米面的小三角
 """
 function const_energy_triangle(
@@ -100,13 +119,7 @@ function const_energy_triangle(
     #
     edges::Vector{T} = []
     for tri in ltris
-        ver1 = tri.vertex[1]
-        sgn1 = sign(disp(ver1.x, ver1.y)-eng)
-        ver2 = tri.vertex[2]
-        sgn2 = sign(disp(ver2.x, ver2.y)-eng)
-        ver3 = tri.vertex[3]
-        sgn3 = sign(disp(ver3.x, ver3.y)-eng)
-        if sgn1 != sgn2 || sgn1 != sgn3
+        if (@onsurface tri disp eng)
             push!(edges, tri)
         end
     end

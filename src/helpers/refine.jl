@@ -19,6 +19,23 @@ export split_triangle, refine_triangles, find_adjs_by_adjoint
         :EQ => EqTriangle
     )
     func = type2func[T]
+    if T == :RT
+        return quote
+            #新的四个直角三角形的四个直角
+            rtvexs = Vector{Point2D}(undef, 4)
+            rtvexs[1] = rtri.vertex[1]
+            rtvexs[2] = middle_point(rtri.vertex[1], rtri.vertex[2])
+            rtvexs[3] = middle_point(rtri.vertex[2], rtri.vertex[3])
+            rtvexs[4] = middle_point(rtri.vertex[3], rtri.vertex[1])
+            #
+            newtris = Vector{Basics.AbstractTriangle{T}}(undef, 4)
+            newtris[1] = RtTriangle(rtvexs[2], rtvexs[3], rtvexs[1])
+            newtris[2] = RtTriangle(rtvexs[2], rtri.vertex[2], rtvexs[3])
+            newtris[3] = RtTriangle(rtvexs[4], rtvexs[3], rtri.vertex[3])
+            newtris[4] = RtTriangle(rtvexs[4], rtvexs[3], rtvexs[1])
+            return newtris
+        end
+    end
     return quote
         #新的四个直角三角形的四个直角
         rtvexs = Vector{Point2D}(undef, 4)

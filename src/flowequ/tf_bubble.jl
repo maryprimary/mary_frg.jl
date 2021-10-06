@@ -12,7 +12,6 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
     #
     lamb = Γ4.λ_0 * exp(-lval)
     brlu_area = area(Γ4.model.brillouin)
-    tri_area = area(Γ4.ltris[1])
     #因为现在所有的能带都必须有同一个lpats，所以只要每一个patch中有哪些tri
     tris_pat = Γ4.ltris_pat
     #
@@ -28,7 +27,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         k1, k2 = Γ4.patches[b1][i1], Γ4.patches[b2][i2]
         q_pp = Γ4.model.kadd(k1, k2)
         bubbres = pi_αβ_minus_tf(
-            tris_pat[i_n], brlu_area, tri_area, lamb,
+            tris_pat[i_n], brlu_area, lamb,
             q_pp, Γ4.model.dispersion[alpha], Γ4.model.dispersion[beta],
             Γ4.model.kadd
         )
@@ -48,7 +47,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
         q_fs = Γ4.model.kadd(k3, -k2)
         bubbres = pi_αβ_plus_tf(
-            tris_pat[i_n], brlu_area, tri_area,
+            tris_pat[i_n], brlu_area,
             lamb, q_fs, Γ4.model.dispersion[alpha],
             Γ4.model.dispersion[beta], Γ4.model.kadd
         )
@@ -68,7 +67,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
         q_ex = Γ4.model.kadd(k1, -k3)
         bubbres = pi_αβ_plus_tf(
-            tris_pat[i_n], brlu_area, tri_area, lamb,
+            tris_pat[i_n], brlu_area, lamb,
             q_ex, Γ4.model.dispersion[alpha],
             Γ4.model.dispersion[beta], Γ4.model.kadd
         )
@@ -85,13 +84,14 @@ end
 """
 function pi_αβ_plus_tf(
     ltris::Vector{T},
-    area::Float64, tarea::Float64, lamb::Float64,
+    area::Float64, lamb::Float64,
     qval::Point2D,
     dispα::Function, dispβ::Function,
     kadd::Function) where T <: Basics.AbstractTriangle
     """温度流的+
     这里的lamb就是T，ltris中的所有三角都应该要在同一个patch中,
-    tarea是每个小三角形的面积，dispa是和k相关的那个能带，dispb是k-q相关的
+    tarea是每个小三角形的面积(已经不用了)，
+    dispa是和k相关的那个能带，dispb是k-q相关的
     """
     nega_q = -qval
     result = 0.
@@ -141,7 +141,7 @@ function pi_αβ_plus_tf(
             end
             d_val = (num_left - num_righ) / (eps_k - eps_kp)
         end# end if 小区域的贡献计算完
-        result += d_val * tarea
+        result += d_val * tri.area
     end#对ltris的循环
     result = result / area
     return result
@@ -150,7 +150,7 @@ end
 
 function pi_αβ_minus_tf(
     ltris::Vector{T},
-    area::Float64, tarea::Float64, lamb::Float64,
+    area::Float64, lamb::Float64,
     qval::Point2D,
     dispα::Function, dispβ::Function,
     kadd::Function) where T <: Basics.AbstractTriangle
@@ -201,7 +201,7 @@ function pi_αβ_minus_tf(
             end
             d_val = (num_left - num_righ) / (eps_k - neps_kp)
         end # end if 小区域的贡献计算完
-        result += d_val * tarea
+        result += d_val * tri.area
     end#对ltris的循环
     result = result / area
     return result

@@ -9,6 +9,7 @@ struct AbstractTriangle{T} <: AbstractPolygon{T}
     vertex :: Array{Point2D, 1}
     edges :: Array{Segment, 1}
     center :: Point2D
+    area :: Float64
 end
 
 
@@ -25,7 +26,10 @@ function Triangle(pt1, pt2, pt3)
         sum([pt1.x, pt2.x, pt3.x]) / 3.0,
         sum([ver.y for ver in verts]) / 3.0
     )
-    return AbstractTriangle{:COM}(verts, edges, center)
+    vec1 = pt2 - pt1
+    vec2 = pt3 - pt1
+    tarea =  0.5abs(vec1.x * vec2.y - vec1.y * vec2.x)
+    return AbstractTriangle{:COM}(verts, edges, center, tarea)
 end
 
 """
@@ -52,7 +56,10 @@ function RtTriangle(pt1, pt2, pt3)
         middle_point(pt2, pt3),
         sc1=1., sc2=1.414
     )
-    return AbstractTriangle{:RT}(verts, edges, center)
+    vec1 = pt2 - pt1
+    vec2 = pt3 - pt1
+    tarea =  0.5abs(vec1.x * vec2.y - vec1.y * vec2.x)
+    return AbstractTriangle{:RT}(verts, edges, center, tarea)
 end
 
 """
@@ -80,7 +87,10 @@ function EqTriangle(pt1, pt2, pt3)
         sum([pt1.x, pt2.x, pt3.x]) / 3.0,
         sum([ver.y for ver in verts]) / 3.0
     )
-    return AbstractTriangle{:EQ}(verts, edges, center)
+    vec1 = pt2 - pt1
+    vec2 = pt3 - pt1
+    tarea =  0.5abs(vec1.x * vec2.y - vec1.y * vec2.x)
+    return AbstractTriangle{:EQ}(verts, edges, center, tarea)
 end
 
 

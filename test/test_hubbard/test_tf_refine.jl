@@ -11,30 +11,26 @@ using MARY_fRG.FlowEquation
 function run_rftf()
     model = common_square_lattice(0.20)
     Γ4 = TFGamma4(
-        model, 8.0, 16, 200
+        model, 8.0, 64, 200
     )
-    Γ4.V .+= 2.0
+    Γ4.V .+= 1.0
     lval = 0.
     lstep = 0.01
     plt = draw_points([tri.center for tri in Γ4.ltris])
     @savepng plt "brlu"*string(lval)
+    Γ4b = Γ4
     for idx in 1:1:2501
         if idx % 10 == 1
-            newΓ4 = TFGamma4_refine_ltris_mt(Γ4, lval)
-            if length(newΓ4.ltris) != length(Γ4.ltris)
-                plt = draw_points([tri.center for tri in newΓ4.ltris])
-                @savepng plt "brlu"*string(lval)
-            end
-            ##重复到不需要再refine
-            #while !(newΓ4 === Γ4)
-            #    Γ4 = newΓ4
-            #    newΓ4 = TFGamma4_refine_ltris_mt(Γ4, lval)
-            #    plt = draw_points([tri.center for tri in Γ4.ltris])
-            #    @savepng plt "brlu"*string(lval)
-            #end
-            Γ4 = newΓ4
+            blval = lval - 5
+            blval = max(blval, 0.)
+            blval = min(blval, 5.)
+            Γ4b = TFGamma4_addition_ltris_mt(Γ4, blval; maxnum=1000000)
+            println(length(Γ4.ltris), "->", length(Γ4b.ltris))
+            #plt = draw_points([tri.center for tri in Γ4b.ltris])
+            #@savepng plt "brlu"*string(lval)
         end
-        bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4, lval)
+        #blval = min(lval, 10.0)
+        bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4b, lval)
         dl = dl_tf_mt(Γ4, bubb_pp, bubb_fs, bubb_ex)
         Γ4.V .+= dl .* lstep
         if idx % 50 == 1
