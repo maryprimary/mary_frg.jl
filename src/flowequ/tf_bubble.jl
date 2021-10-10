@@ -114,11 +114,13 @@ function pi_αβ_plus_tf(
             #如果本身就很大，分母会比较大导致接近0
             if bval > 25
                 #@info "数值不稳定"
-                return 0.
+                num = 0.
+                den = 100.
+            else
+                expb = exp(bval)
+                num = expb * (-bval * expb + bval + expb + 1)
+                den = (1+expb)^3
             end
-            expb = exp(bval)
-            num = expb * (-bval * expb + bval + expb + 1)
-            den = (1+expb)^3
             d_val = num / den / lamb
         else#如果本身是正常的数值
             #分子左侧的数值
@@ -174,12 +176,14 @@ function pi_αβ_minus_tf(
             #/ (e^{eps/T} + 1)^3
             bval = eps_k / lamb
             if bval > 25
-               #@info "数值不稳定"
-               return 0.
+                #@info "数值不稳定"
+                num = 0.
+                den = 100.
+            else
+                expb = exp(bval)
+                num = expb * (-bval * expb + bval + expb + 1)
+                den = (1+expb)^3
             end
-            expb = exp(bval)
-            num = expb * (-bval * expb + bval + expb + 1)
-            den = (1+expb)^3
             d_val = num / den / lamb
         else
             if (eps_k / lamb) > 25
