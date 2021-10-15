@@ -115,6 +115,9 @@ include("triangular_lattice.jl")
 export common_triangle_lattice
 
 
+include("kagome_lattice.jl")
+export upperband_kagome_lattice
+
 
 include("surface.jl")
 

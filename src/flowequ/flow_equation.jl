@@ -319,9 +319,8 @@ function dl_tf_mix_ult_mt(Γ4::Gamma4, bubb_pp_com::T1, bubb_fs_com::T2,
     triarea = area(Γ4.ltris[1])
     #贡献的半高宽
     halfarea = 4 * (Γ4.λ_0*exp(-bubb_pp_com.lval))^2
-    coef = bubb_pp_com.lval > 12 ? 10.0 : 0.0
+    coef = bubb_pp_com.lval > 12 ? 1.0 : 0.0
     #max(0., 1 - (halfarea / triarea))#1 / (1 + exp(halfarea/triarea))
-    #println(coef, bubb_pp_com.lval)
     #所有的自由度
     Threads.@threads for idxs in CartesianIndices(dl_val)
         b1, b2, b3, b4, i1, i2, i3 = Tuple(idxs)
@@ -336,8 +335,8 @@ function dl_tf_mix_ult_mt(Γ4::Gamma4, bubb_pp_com::T1, bubb_fs_com::T2,
             pi_plu_αβ_n_qex = bubb_ex_com.V[α, β, b1, b3, i_n, i1, i3]
             #增加上ult的贡献
             pi_min_αβ_n_qpp += coef * bubb_pp_ult.V[α, β, b1, b2, i_n, i1, i2]
-            #pi_plu_αβ_n_qfs += coef * bubb_fs_ult.V[α, β, b2, b3, i_n, i2, i3]
-            #pi_plu_αβ_n_qex += coef * bubb_ex_ult.V[α, β, b1, b3, i_n, i1, i3]
+            pi_plu_αβ_n_qfs += coef * bubb_fs_ult.V[α, β, b2, b3, i_n, i2, i3]
+            pi_plu_αβ_n_qex += coef * bubb_ex_ult.V[α, β, b1, b3, i_n, i1, i3]
             #
             value += Γ4.V[b2, b1, α, β, i2, i1, i_n] *
                 Γ4.V[b3, b4, α, β, i3, i4, i_n] * pi_min_αβ_n_qpp
@@ -662,6 +661,7 @@ end
 
 function TFGamma4_addition_ltris_mt(Γ4::Gamma4{T, P}, blval
     ; maxnum=5000000) where {T, P}
+    @warn "会被移除"
     if !isnothing(Γ4.ladjs)
         @warn "会丢失ladjs的信息"
     end

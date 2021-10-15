@@ -114,8 +114,13 @@ function pi_αβ_plus_tf_ult(
         if !isapprox(eps_kp, 0., atol=cert)
             continue
         end
+        #必须反号
+        signed_k = eps_k / eps_kp
+        if signed_k > 0
+            continue
+        end
         #这个小区域的贡献
-        result += tri.edges[1].length
+        result += 2 * tri.edges[1].length / (abs(signed_k) + 1)
     end#对ltris的循环
     result = result / area
     return result
@@ -149,9 +154,13 @@ function pi_αβ_minus_tf_ult(
         if !isapprox(neps_kp, 0., atol=cert)
             continue
         end
-        #这个时候，因为epsilon_{-k+q}前面已经有了负号，分母上还是负号
+        #必须反号，注意这里neps_kp是已经带负号的
+        signed_k = eps_k / neps_kp
+        if signed_k > 0
+            continue
+        end
         #计算这个小区域的贡献
-        result += tri.edges[1].length
+        result += 2 * tri.edges[1].length / (abs(signed_k) + 1)
     end#对ltris的循环
     result = result / area
     return result

@@ -263,7 +263,7 @@ end
 function run_rf_ult()
     model = common_square_lattice(0.20)
     disp = model.dispersion[1]
-    lval = 10.
+    lval = 17.
     #500
     Γ4_5 = TFGamma4(
         model, 8.0, 16, 500
@@ -306,7 +306,7 @@ function run_rf_ult()
     println("tri大小", length(Γ4_1.ltris))
     maxi, mini = engpeak_to_surface(Γ4_1)
     println(maxi, " ", mini)
-    bubb_pp_u, bubb_fs_u, bubb_ex_u = all_bubble_tf_ult_mt(Γ4_1, 10*mini)
+    bubb_pp_u, bubb_fs_u, bubb_ex_u = all_bubble_tf_ult_mt(Γ4_1, maxi)
     println("ult时的贡献 ", sum(abs.(bubb_pp_u.V)))
     println("ult时最大", findmax(abs.(bubb_pp_u.V)))
     #500和100的差
@@ -320,21 +320,21 @@ function run_rf_ult()
     println(sum(diffe))
     println(sum(abs.(bubb_pp_u.V)))
     #ult和500的画图
-    plt = heatmap(1e5*bubb_fs_u.V[1, 1, 1, 1, 1, :, :])
+    plt = heatmap(1e5*bubb_pp_u.V[1, 1, 1, 1, 1, :, :])
     png(plt, "bubb_u1")
-    plt = heatmap(1e5*bubb_fs_u.V[1, 1, 1, 1, 2, :, :])
+    plt = heatmap(1e5*bubb_pp_u.V[1, 1, 1, 1, 2, :, :])
     png(plt, "bubb_u2")
-    plt = heatmap(1e5*bubb_fs_u.V[1, 1, 1, 1, 3, :, :])
+    plt = heatmap(1e5*bubb_pp_u.V[1, 1, 1, 1, 3, :, :])
     png(plt, "bubb_u3")
-    plt = heatmap(1e5*bubb_fs_u.V[1, 1, 1, 1, 4, :, :])
+    plt = heatmap(1e5*bubb_pp_u.V[1, 1, 1, 1, 4, :, :])
     png(plt, "bubb_u4")
-    plt = heatmap(1e5*bubb_fs_5.V[1, 1, 1, 1, 1, :, :])
+    plt = heatmap(1e5*bubb_pp_5.V[1, 1, 1, 1, 1, :, :])
     png(plt, "bubb_51")
-    plt = heatmap(1e5*bubb_fs_5.V[1, 1, 1, 1, 2, :, :])
+    plt = heatmap(1e5*bubb_pp_5.V[1, 1, 1, 1, 2, :, :])
     png(plt, "bubb_52")
-    plt = heatmap(1e5*bubb_fs_5.V[1, 1, 1, 1, 3, :, :])
+    plt = heatmap(1e5*bubb_pp_5.V[1, 1, 1, 1, 3, :, :])
     png(plt, "bubb_53")
-    plt = heatmap(1e5*bubb_fs_5.V[1, 1, 1, 1, 4, :, :])
+    plt = heatmap(1e5*bubb_pp_5.V[1, 1, 1, 1, 4, :, :])
     png(plt, "bubb_54")
     println(Γ4_1.patches[1][1], Γ4_1.patches[1][4], Γ4_1.patches[1][9])
 end
