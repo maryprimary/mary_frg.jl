@@ -114,6 +114,15 @@ function pi_αβ_plus_tf_ult(
         if !isapprox(eps_kp, 0., atol=cert)
             continue
         end
+        #如果有一个严格等于0,就换个位置算
+        vidx = 1
+        while isapprox(eps_kp, 0.) || isapprox(eps_k, 0.)
+            kval = tri.vertex[vidx]
+            kprim = kadd(kval, nega_q)
+            eps_k = dispα(kval.x, kval.y)
+            eps_kp = dispβ(kprim.x, kprim.y)
+            vidx += 1
+        end
         #必须反号
         signed_k = eps_k / eps_kp
         if signed_k > 0
@@ -153,6 +162,16 @@ function pi_αβ_minus_tf_ult(
         neps_kp = -dispβ(kprim.x, kprim.y)
         if !isapprox(neps_kp, 0., atol=cert)
             continue
+        end
+        #如果其中一个完全等于0,就换个位置算
+        vidx = 1
+        while isapprox(neps_kp, 0.) || isapprox(eps_k, 0.)
+            kval = tri.vertex[vidx]
+            nega_k = -kval
+            kprim = kadd(nega_k, qval)
+            eps_k = dispα(kval.x, kval.y)
+            neps_kp = -dispβ(kprim.x, kprim.y)
+            vidx += 1
         end
         #必须反号，注意这里neps_kp是已经带负号的
         signed_k = eps_k / neps_kp

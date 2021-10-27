@@ -3,6 +3,7 @@ using MARY_fRG.Triangulated
 using MARY_fRG.Fermi
 using MARY_fRG.Fermi.Surface
 using MARY_fRG.Drawers
+using MARY_fRG.Fermi.Kagome
 
 #@testset "正方格子的费米面" begin
 #    qs = common_square_lattice(0.)
