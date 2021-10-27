@@ -31,26 +31,26 @@ using MARY_fRG.Fermi.Patch
 #end
 
 
-#@testset "正方晶系" begin
-#    quad = common_square_lattice(0.5)
-#    #
-#    ltris, ladjs = split_square(quad.brillouin, 200)
-#    #find_patch_index_squa(ltris[613].center, quad.brillouin, 28)
-#    pnum = 44
-#    lpats = group_ltris_into_patches_mt(ltris, quad.brillouin, pnum)
-#    patcs = patches_under_vonhove(quad.brillouin, quad.dispersion[1], pnum)
-#    #[find_patch_index_squa(tri.center, quad.brillouin, pnum) for tri in ltris]
-#    for idx in 1:1:pnum
-#        plt = draw_lines(quad.brillouin.edges)
-#        pltris::Vector{Basics.AbstractTriangle} = []
-#        for (tri, pid) in zip(ltris, lpats)
-#            if pid == idx
-#                push!(pltris, tri)
-#            end
-#        end
-#        draw_points!(plt, [patcs[idx]]; text=idx)
-#        draw_polygon!(plt, pltris; pcidx=ones(Int64, length(pltris)))
-#        @savepng plt "patch"*string(idx)
-#    end
-#end
+@testset "正方晶系" begin
+    quad = common_square_lattice(1.0)
+    #
+    ltris, ladjs = split_square(quad.brillouin, 200)
+    #find_patch_index_squa(ltris[613].center, quad.brillouin, 28)
+    pnum = 44
+    lpats = group_ltris_into_patches_mt(ltris, quad.brillouin, pnum)
+    patcs = patches_under_vonhove(quad.brillouin, quad.dispersion[1], pnum)
+    #[find_patch_index_squa(tri.center, quad.brillouin, pnum) for tri in ltris]
+    for idx in 1:1:pnum
+        plt = draw_lines(quad.brillouin.edges)
+        pltris::Vector{Basics.AbstractTriangle} = []
+        for (tri, pid) in zip(ltris, lpats)
+            if pid == idx
+                push!(pltris, tri)
+            end
+        end
+        draw_points!(plt, [patcs[idx]]; text=idx)
+        draw_polygon!(plt, pltris; pcidx=ones(Int64, length(pltris)))
+        @savepng plt "patch"*string(idx)
+    end
+end
 

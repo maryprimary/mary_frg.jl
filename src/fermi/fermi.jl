@@ -63,7 +63,7 @@ struct TriangularSystem{T} <: Abstract2DModel{T}
             EqHexagon(Point2D(0., 0.), 4pi/3.0),
             disps,
             length(disps),
-            hexagon_kadd
+            hexagon_kadd2
         )
     end
 end
@@ -73,6 +73,7 @@ end
 三角晶系的动量平移
 """
 function hexagon_kadd(pt1::Point2D, pt2::Point2D)
+    @warn "hexagon_kadd很慢，用hexagon_kadd2代替"
     #找到离目标最近的一个第一布里渊区的中心
     #如果这个点距离中心是最近的，那么他就在第一布里渊区里面了，如果
     #离其他的点近，就平移一次，再检查一遍
@@ -102,6 +103,87 @@ function hexagon_kadd(pt1::Point2D, pt2::Point2D)
 end
 
 
+"""
+三角晶系的动量平移
+b1=π(-2, 2/√3); b2=π(2, 2/√3);
+"""
+function hexagon_kadd2(pt1::Point2D, pt2::Point2D)
+    dest = pt1 + pt2
+    destx, desty = dest.x, dest.y
+    #用一个长方型的框包起来
+    while abs(desty) > π*2/√3
+        desty = desty - sign(desty) * π*4/√3
+    end
+    while abs(destx) > 2*π
+        destx = destx - sign(destx) * π*4
+    end
+    #如果在竖线上，肯定已经在第一布里渊区
+    if isapprox(destx, 0.)
+        return Point2D(destx, desty)
+    end
+    #如果在横线上
+    if isapprox(desty, 0.)
+        if destx > pi*4/3
+            return Point2D(destx-π*2, π*2/√3)
+        end
+        if desty < -pi*4/3
+            return Point2D(destx+π*2, π*2/√3)
+        end
+        return Point2D(destx, desty)
+    end
+    #如果在四个角落上
+    lslope = -√3 * sign(destx) * sign(desty)
+    y0 = sign(desty)*π*4/√3
+    #println(lslope)
+    #println(y0)
+    #println(lslope*destx + y0)
+    if desty*sign(desty) > (lslope*destx + y0)*sign(desty)
+        destx = destx - sign(destx)*π*2
+        desty = desty - sign(desty)*π*2/√3
+    end
+    return Point2D(destx, desty)
+end
+
+
+
+##"""不比kadd2要快
+##三角晶系的动量平移
+##b1=π(-2, 2/√3); b2=π(2, 2/√3);
+##"""
+##function hexagon_kadd3(pt1::Point2D, pt2::Point2D)
+##    dest = pt1 + pt2
+##    destx, desty = dest.x, dest.y
+##    #用一个长方型的框包起来
+##    while abs(desty) > π*2/√3
+##        desty = desty - sign(desty) * π*4/√3
+##    end
+##    while abs(destx) > 2*π
+##        destx = destx - sign(destx) * π*4
+##    end
+##    #如果在竖线上，肯定已经在第一布里渊区
+##    if isapprox(destx, 0.)
+##        return Point2D(destx, desty)
+##    end
+##    #
+##    if sign(destx) * sign(desty) > 0
+##        inp = 0.5*(√3)*destx + 0.5*desty
+##        if inp > π*2/√3
+##            return Point2D(destx - π*2, desty - π*2/√3)
+##        elseif inp < -π*2/√3
+##            return Point2D(destx + π*2, desty + π*2/√3)
+##        end
+##        return Point2D(destx, desty)
+##    else
+##        inp = -0.5*(√3)*destx + 0.5*desty
+##        if inp > π*2/√3
+##            return Point2D(destx + π*2, desty - π*2/√3)
+##        elseif inp < -π*2/√3
+##            return Point2D(destx - π*2, desty + π*2/√3)
+##        end
+##        return Point2D(destx, desty)
+##    end
+##end
+
 
 #
 #一些内建的模型
@@ -114,6 +196,8 @@ export common_square_lattice
 include("triangular_lattice.jl")
 export common_triangle_lattice
 
+
+include("kagome_lattice.jl")
 
 
 include("surface.jl")

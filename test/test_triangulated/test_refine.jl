@@ -7,7 +7,7 @@ using MARY_fRG.Refine, MARY_fRG.Basics, MARY_fRG.Triangulated
 using MARY_fRG.Drawers
 
 @testset "三角形的切分" begin
-    rtri = RtTriangle(Point2D(0., 0.), Point2D(1., 1.), Point2D(2., 0.))
+    rtri = RtTriangle(Point2D(0., 0.), Point2D(1., 1.), Point2D(1., -1.))
     newtris = split_triangle(rtri)
     println(newtris)
     plt = draw_polygon(newtris)
