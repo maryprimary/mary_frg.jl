@@ -28,8 +28,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         q_pp = Γ4.model.kadd(k1, k2)
         bubbres = pi_αβ_minus_tf(
             tris_pat[i_n], brlu_area, lamb,
-            q_pp, Γ4.model.dispersion[alpha], Γ4.model.dispersion[beta],
-            Γ4.model.kadd
+            q_pp, Γ4.model.dispersion[alpha], Γ4.model.dispersion[beta]
         )
         bubbval_pp[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
     end
@@ -49,7 +48,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         bubbres = pi_αβ_plus_tf(
             tris_pat[i_n], brlu_area,
             lamb, q_fs, Γ4.model.dispersion[alpha],
-            Γ4.model.dispersion[beta], Γ4.model.kadd
+            Γ4.model.dispersion[beta]
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres
     end
@@ -69,7 +68,7 @@ function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval) where {T, P}
         bubbres = pi_αβ_plus_tf(
             tris_pat[i_n], brlu_area, lamb,
             q_ex, Γ4.model.dispersion[alpha],
-            Γ4.model.dispersion[beta], Γ4.model.kadd
+            Γ4.model.dispersion[beta]
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres
     end
@@ -86,8 +85,7 @@ function pi_αβ_plus_tf(
     ltris::Vector{T},
     area::Float64, lamb::Float64,
     qval::Point2D,
-    dispα::Function, dispβ::Function,
-    kadd::Function) where T <: Basics.AbstractTriangle
+    dispα::Function, dispβ::Function) where T <: Basics.AbstractTriangle
     """温度流的+
     这里的lamb就是T，ltris中的所有三角都应该要在同一个patch中,
     tarea是每个小三角形的面积(已经不用了)，
@@ -99,7 +97,8 @@ function pi_αβ_plus_tf(
         #这个小三角形的k值
         kval = tri.center
         #k-q
-        kprim = kadd(kval, nega_q)
+        kprim = kval + nega_q
+        #kprim = kadd(kval, nega_q)
         #epsilon_k
         eps_k = dispα(kval.x, kval.y)
         #epsilon_{k-q}
@@ -154,15 +153,15 @@ function pi_αβ_minus_tf(
     ltris::Vector{T},
     area::Float64, lamb::Float64,
     qval::Point2D,
-    dispα::Function, dispβ::Function,
-    kadd::Function) where T <: Basics.AbstractTriangle
+    dispα::Function, dispβ::Function) where T <: Basics.AbstractTriangle
     result = 0.
     for tri in ltris
         #这个小三角形的k值
         kval = tri.center
         nega_k = -kval
         #-k+q
-        kprim = kadd(nega_k, qval)
+        kprim = nega_k + qval
+        #kprim = kadd(nega_k, qval)
         #epsilon_k
         eps_k = dispα(kval.x, kval.y)
         #-epsilon_{-k+q}

@@ -6,6 +6,11 @@ using Plots
 using MARY_fRG.Fermi
 using MARY_fRG.FlowEquation
 
+
+#阻止画图
+ENV["GKSwstype"] = "100"
+
+
 """
 从头开始运行代码
 """
@@ -34,7 +39,7 @@ end
 
 
 function run_tf()
-    model = common_square_lattice(0.20)
+    model = common_square_lattice(0.00)
     Γ4 = TFGamma4(
         model, 8.0, 16, 100
     )

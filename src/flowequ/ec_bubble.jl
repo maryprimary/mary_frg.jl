@@ -52,7 +52,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         bubbres = pi_αβ_minus_ec(
             posimat[alpha, i_n], negamat[alpha, i_n],
             brlu_area, lamb,
-            qpp, Γ4.model.dispersion[beta], Γ4.model.kadd
+            qpp, Γ4.model.dispersion[beta]
         )
         bubbval[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
     end
@@ -80,12 +80,12 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         bubbres_fs = pi_αβ_plus_ec(
             posimat[alpha, i_n], negamat[alpha, i_n],
             brlu_area, lamb,
-            qfs, Γ4.model.dispersion[beta], Γ4.model.kadd
+            qfs, Γ4.model.dispersion[beta]
         )
         bubbres_nfs = pi_αβ_plus_ec(
             posimat[alpha, i_n], negamat[alpha, i_n],
             brlu_area, lamb,
-            nqfs, Γ4.model.dispersion[beta], Γ4.model.kadd
+            nqfs, Γ4.model.dispersion[beta]
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_fs
         bubbval_nfs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_nfs
@@ -115,12 +115,12 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         bubbres_ex = pi_αβ_plus_ec(
             posimat[alpha, i_n], negamat[alpha, i_n],
             brlu_area, lamb,
-            qex, Γ4.model.dispersion[beta], Γ4.model.kadd
+            qex, Γ4.model.dispersion[beta]
         )
         bubbres_nex = pi_αβ_plus_ec(
             posimat[alpha, i_n], negamat[alpha, i_n],
             brlu_area, lamb,
-            nqex, Γ4.model.dispersion[beta], Γ4.model.kadd
+            nqex, Γ4.model.dispersion[beta]
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_ex
         bubbval_nex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_nex
@@ -145,7 +145,7 @@ function pi_αβ_plus_ec(
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function, kadd::Function
+    disp::Function
 )
     """
     10.112中的 PI^+(n, q) = +LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(k - Q)
@@ -178,7 +178,8 @@ function pi_αβ_plus_ec(
     intposi = 0.
     for edg in posi
         kval = middle_point(edg.pt1, edg.pt2)
-        kprim = kadd(kval, nega_q)
+        kprim = kval + nega_q
+        #kprim = kadd(kval, nega_q)
         #CITA
         disp_kprim = disp(kprim.x, kprim.y)
         if -disp_kprim < lamb
@@ -191,7 +192,8 @@ function pi_αβ_plus_ec(
     intnega = 0.
     for edg in nega
         kval = middle_point(edg.pt1, edg.pt2)
-        kprim = kadd(kval, nega_q)
+        kprim = kval + nega_q
+        #kprim = kadd(kval, nega_q)
         #CITA
         disp_kprim = disp(kprim.x, kprim.y)
         if disp_kprim < lamb
@@ -214,12 +216,13 @@ kshf是动量相加的函数, 这个函数应该能处理好到第一布里渊�
 area是第一布里渊区的面积\n
 ```(10.112)本身已经处理好了动量守恒，k, k-q是需要满足动量守恒的关系的，而处理好```
 ```k-q到第一布里渊区的映射就处理好了Umklapp```
+因为算能量的时候，超出第一布里渊区也没有关系，所以不再需要kadd
 """
 function pi_αβ_minus_ec(
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function, kadd::Function
+    disp::Function
 )
     """
     10.112中的 PI^-(n, q) = -LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(- k + Q)
@@ -241,7 +244,8 @@ function pi_αβ_minus_ec(
     intposi = 0.
     for edg in posi
         kval = middle_point(edg.pt1, edg.pt2)
-        kprim = kadd(-kval, qval)
+        kprim = qval - kval
+        #kprim = kadd(-kval, qval)
         #CITA
         disp_kprim = disp(kprim.x, kprim.y)
         if disp_kprim < lamb
@@ -254,7 +258,8 @@ function pi_αβ_minus_ec(
     intnega = 0.
     for edg in nega
         kval = middle_point(edg.pt1, edg.pt2)
-        kprim = kadd(-kval, qval)
+        kprim = qval - kval
+        #kprim = kadd(-kval, qval)
         #CITA
         disp_kprim = disp(kprim.x, kprim.y)
         if -disp_kprim < lamb

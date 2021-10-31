@@ -6,6 +6,7 @@ using MARY_fRG.Basics
 using MARY_fRG.Drawers
 using MARY_fRG.Fermi
 using MARY_fRG.Fermi.Patch
+using MARY_fRG.Fermi.Kagome
 using MARY_fRG.FlowEquation
 
 
@@ -261,12 +262,13 @@ end
 
 
 function run_rf_ult()
-    model = common_square_lattice(0.20)
+    #model = common_square_lattice(0.20)
+    model = upperband_kagome_lattice(-0.2)
     disp = model.dispersion[1]
     lval = 17.
     #500
     Γ4_5 = TFGamma4(
-        model, 8.0, 16, 500
+        model, 8.0, 24, 500
     )
     Γ4_5.V .+= 1.0
     #Γ4_5 = fliter(Γ4_5, 12.0)
@@ -288,7 +290,7 @@ function run_rf_ult()
     ###
     #100
     Γ4_1 = TFGamma4(
-        model, 8.0, 16, 800
+        model, 8.0, 24, 200
     )
     Γ4_1.V .+= 1.0
     bubb_pp_1, bubb_fs_1, bubb_ex_1 = all_bubble_tf_mt(Γ4_1, lval)
