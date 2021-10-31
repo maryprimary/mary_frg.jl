@@ -7,6 +7,11 @@ using MARY_fRG.Interactions
 using MARY_fRG.Fermi, MARY_fRG.Fermi.Surface
 using MARY_fRG.FlowEquation
 
+
+#阻止画图
+ENV["GKSwstype"] = "100"
+
+
 function run()
     model = common_triangle_lattice(-2.0)
     Γ4 = ECGamma4(
