@@ -627,15 +627,21 @@ function engpeak_to_surface(Γ4::Gamma4{T, P}) where {T, P}
     maxi = 0.
     mini = 100.
     for tri in Γ4.ltris
+        #先找到距离哪个能带最近
+        bmini = 100.
         for didx in 1:1:Γ4.model.bandnum
             disp = Γ4.model.dispersion[didx]
             eng = abs(disp(tri.center.x, tri.center.y))
-            if eng > maxi
-                maxi = eng
+            if eng < bmini
+                bmini = eng
             end
-            if eng < mini
-                mini = eng
-            end
+        end
+        #然后修改最大最小
+        if bmini > maxi
+            maxi = bmini
+        end
+        if bmini < mini
+            mini = bmini
         end
     end
     return maxi, mini
