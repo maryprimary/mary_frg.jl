@@ -30,9 +30,9 @@ end
 
 
 function run_tf()
-    model = upperband_kagome_lattice(-0.2)
+    model = upperband_kagome_lattice(-0.3)
     Γ4 = TFGamma4(
-        model, 6.0, 24, 223
+        model, 6.0, 24, 233
     )
     Γ4.V[1, 1, 1, 1, :, :, :] .+= get_kagome_U_mt(3.0, Γ4.patches[1])
     println(
@@ -45,18 +45,15 @@ function run_tf()
     lstep = 0.01
     bpu, bfu, beu = get_ult_bubb(Γ4)
     @info "ult结束"
-    for idx in 1:1:8501
+    for idx in 1:1:5001
         bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4, lval)
         dl = dl_tf_mix_ult_mt(Γ4, bubb_pp, bubb_fs, bubb_ex, bpu, bfu, beu)
         Γ4.V .+= dl .* lstep
-        if idx % 50 == 1
+        if idx % 50 == 1 || idx > 2001
             plt = heatmap(Γ4.V[1, 1, 1, 1, :, :, 1])
-            png(plt, "Gamma4"*string(lval))
+            png(plt, "Gamma4"*string(idx))
         end
         lval += lstep
-        if idx > 2000
-            lstep = 1.00
-        end
     end
 end
 
