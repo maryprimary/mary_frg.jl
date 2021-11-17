@@ -2,6 +2,7 @@
 三角晶系相关
 """
 
+export common_triangle_lattice
 
 """
 普通的三角格子

@@ -2,6 +2,7 @@
 正方晶系相关
 """
 
+export common_square_lattice
 
 """
 普通的正方格子
