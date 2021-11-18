@@ -17,15 +17,15 @@ export const_energy_triangle
 获取等能面
 """
 function const_energy_line(
-    ltris::Vector{T},
+    model::P, ltris::Vector{T},
     ladjs::Vector{Tuple{Union{Missing, T}, Union{Missing, T}, Union{Missing, T}}},
     eng::Float64,
-    disp::Function) where T <: Basics.AbstractTriangle 
+    didx::Int64) where {T <: Basics.AbstractTriangle, P <: Fermi.Abstract2DModel}
     #计算每个位置上面的能量
     eng_dict = Dict()
     for tri in ltris
         #能量这里减去需要寻找的能量大小
-        eng_dict[tri] = disp(tri.center.x, tri.center.y) - eng
+        eng_dict[tri] = dispersion(model, didx, tri.center.x, tri.center.y) - eng
     end
     #
     edges::Vector{Basics.Segment} = []
@@ -55,15 +55,14 @@ end
 获取费米面，但是要分好属于哪一组
 """
 function const_energy_line_in_patches(
-    ltris::Vector{T},
+    model::P, ltris::Vector{T},
     ladjs::Vector{Tuple{Union{Missing, T}, Union{Missing, T}, Union{Missing, T}}},
     lpats::Vector{Int64},
-    eng::Float64,
-    disp::Function) where T <: Basics.AbstractTriangle 
+    eng::Float64, didx::Int64) where {T <: Basics.AbstractTriangle, P <: Fermi.Abstract2DModel}
     eng_dict = Dict()
     for tri in ltris
         #能量这里减去需要寻找的能量大小
-        eng_dict[tri] = disp(tri.center.x, tri.center.y) - eng
+        eng_dict[tri] = dispersion(model, didx, tri.center.x, tri.center.y) - eng
     end
     #
     edges::Vector{Basics.Segment} = []
@@ -93,14 +92,14 @@ end
 """
 判断小三角是否穿过费米面
 """
-macro onsurface(tri, disp, eng)
+macro onsurface(model, bidx, tri, eng)
     return esc(quote
         ver1 = ($tri).vertex[1]
-        sgn1 = sign($disp(ver1.x, ver1.y)-$eng)
+        sgn1 = sign(dispersion($model, $bidx, ver1.x, ver1.y)-$eng)
         ver2 = ($tri).vertex[2]
-        sgn2 = sign($disp(ver2.x, ver2.y)-$eng)
+        sgn2 = sign(dispersion($model, $bidx,ver2.x, ver2.y)-$eng)
         ver3 = ($tri).vertex[3]
-        sgn3 = sign($disp(ver3.x, ver3.y)-$eng)
+        sgn3 = sign(dispersion($model, $bidx,ver3.x, ver3.y)-$eng)
         sgn1 != sgn2 || sgn1 != sgn3
     end)
 end
@@ -111,15 +110,17 @@ end
 穿过费米面的小三角
 """
 function const_energy_triangle(
+    model::P,
+    didx::Int64,
     ltris::Vector{T},
-    eng::Float64,
-    disp::Function) where T <: Basics.AbstractTriangle
+    eng::Float64
+    ) where {T <: Basics.AbstractTriangle, P <: Fermi.Abstract2DModel}
     #
     #如果一个小三角型的三个顶点的能量符号不同，那就是穿过了费米面
     #
     edges::Vector{T} = []
     for tri in ltris
-        if (@onsurface tri disp eng)
+        if (@onsurface model didx tri eng)
             push!(edges, tri)
         end
     end

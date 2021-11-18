@@ -14,7 +14,7 @@ ENV["GKSwstype"] = "100"
 function run_rftf()
     model = common_square_lattice(0.20)
     Γ4 = TFGamma4(
-        model, 8.0, 16, 800
+        model, 8.0, 16, 100
     )
     Γ4.V .+= 1.0
     lval = 0.

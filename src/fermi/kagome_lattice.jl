@@ -2,8 +2,6 @@
 kagome lattice的相关功能
 """
 
-module Kagome
-
 using ..Fermi
 
 export upperband_kagome_lattice
@@ -11,6 +9,8 @@ export wuxx_av3sb5_kagome_lattice
 #export upperband_kagome_lattice2
 export get_kagome_ν, get_kagome_U_mt
 export get_wuxx_U_mt
+
+export dispersion
 
 
 """
@@ -53,10 +53,18 @@ end
 上半个能带的kagome lattice
 """
 function upperband_kagome_lattice(μ)
-    disp(x, y) = (@upperband x y) + μ
+    #disp(x, y) = (@upperband x y) + μ
     return TriangularSystem{:KAGOME}(
-        [disp]
+        [μ]
     )
+end
+
+
+"""
+单带kagome的色散
+"""
+function dispersion(model::TriangularSystem{:KAGOME}, ::Int64, x, y)
+    return (@upperband x y) + model.μs[1]
 end
 
 
@@ -64,11 +72,23 @@ end
 两个能带的A V_3 Sb_5
 """
 function wuxx_av3sb5_kagome_lattice()
-    disp1(x, y) = 0.5*(@upperband x y) - 0.055
-    disp2(x, y) = (@lowerband x y) + 2.182
+    #disp1(x, y) = 0.5*(@upperband x y) - 0.055
+    #disp2(x, y) = (@lowerband x y) + 2.182
     return TriangularSystem{:WUXX}(
-        [disp1, disp2]
+        [-0.055, 2.182]
     )
+end
+
+
+"""
+wuxxmodel的色散
+"""
+function dispersion(model::TriangularSystem{:WUXX}, bidx::Int64, x, y)
+    if bidx == 1
+        return 0.5*(@upperband x y) + model.μs[1]
+    else
+        return (@lowerband x y) + model.μs[2]
+    end
 end
 
 
@@ -249,7 +269,3 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2)
     end
     return ret
 end
-
-
-
-end # end module

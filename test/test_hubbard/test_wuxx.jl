@@ -4,7 +4,7 @@
 
 using Plots
 using MARY_fRG.Drawers
-using MARY_fRG.Fermi.Kagome
+using MARY_fRG.Fermi
 using MARY_fRG.Fermi.Surface
 using MARY_fRG.FlowEquation
 
@@ -24,8 +24,8 @@ function get_ult_bubb(Γ4; maxnum=2000000)
     while length(Γ4_ult.ltris) < maxnum
         Γ4_ult = refine_to_surface(Γ4_ult)
     end
-    #plt = draw_points([tri.center for tri in Γ4_ult.ltris])
-    #@savepng plt "ult_surface"
+    plt = draw_points([tri.center for tri in Γ4_ult.ltris])
+    @savepng plt "ult_surface"
     maxi, mini = engpeak_to_surface(Γ4_ult)
     println(maxi, " ", mini)
     bubb_pp_u, bubb_fs_u, bubb_ex_u = all_bubble_tf_ult_mt(Γ4_ult, maxi)

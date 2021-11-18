@@ -73,7 +73,7 @@ function ECGamma4(
     mpats::Vector{Vector{Basics.Point2D}} = []
     for midx in 1:1:model.bandnum
         push!(mpats, patches_under_vonhove(
-            model.brillouin, model.dispersion[midx], patchnum
+            model, midx, patchnum
         ))
     end
     #
@@ -94,8 +94,8 @@ function ECGamma4(
         k1p = mpats[m1][k1]
         k2p = mpats[m2][k2]
         k3p = mpats[m3][k3]
-        k4p = model.kadd(k1p, k2p)
-        k4p = model.kadd(k4p, -k3p)
+        k4p = kadd(model, k1p, k2p)
+        k4p = kadd(model, k4p, -k3p)
         k4tab[m1, m2, m3, m4, k1, k2, k3] =
         find_algo(k4p, model.brillouin, patchnum)
     end
@@ -125,7 +125,7 @@ function TFGamma4(
     mpats::Vector{Vector{Basics.Point2D}} = []
     for midx in 1:1:model.bandnum
         push!(mpats, patches_under_vonhove(
-            model.brillouin, model.dispersion[midx], patchnum
+            model, midx, patchnum
         ))
     end
     #
@@ -146,8 +146,8 @@ function TFGamma4(
         k1p = mpats[m1][k1]
         k2p = mpats[m2][k2]
         k3p = mpats[m3][k3]
-        k4p = model.kadd(k1p, k2p)
-        k4p = model.kadd(k4p, -k3p)
+        k4p = kadd(model, k1p, k2p)
+        k4p = kadd(model, k4p, -k3p)
         k4tab[m1, m2, m3, m4, k1, k2, k3] =
         find_algo(k4p, model.brillouin, patchnum)
     end
@@ -370,7 +370,7 @@ function fliter_away_surface(Γ4::Gamma4{T, P}, lval) where {T, P}
     reslpats::Vector{Int64} = []
     cert = 1#length(Γ4.ltris) > 2000000 ? 5 : 15
     for (tri, pat) in zip(Γ4.ltris, Γ4.lpats)
-        engs = [Γ4.model.dispersion[bidx](
+        engs = [dispersion(Γ4.model, bidx,
             tri.center.x, tri.center.y) / lamb for bidx in 1:1:Γ4.model.bandnum
         ]
         #如果还有可能有贡献
@@ -416,8 +416,7 @@ function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval; maxnum=2500000) where
     lamb = Γ4.λ_0 * exp(-lval)
     max2suf = Vector{Float64}(undef, Γ4.model.bandnum)
     for bidx in 1:1:length(max2suf)
-        disp = Γ4.model.dispersion[bidx]
-        suf = const_energy_triangle(Γ4.ltris, 0., disp)
+        suf = const_energy_triangle(Γ4.model, bidx, Γ4.ltris, 0.)
         engs = zeros(length(suf))
         for (idx, tri) in enumerate(suf)
             center = tri.center
@@ -563,12 +562,12 @@ end
 """
 将等能面上面的一串三角形变成更接近的
 """
-function refine_to_surface(ltris::Vector{P}, eng, disp) where P
+function refine_to_surface(model, didx, ltris::Vector{P}, eng) where P
     newltris::Vector{P} = []
     for tri in ltris
         ftris = split_triangle(tri)
         for ftri in ftris
-            if @onsurface ftri disp eng
+            if @onsurface model didx ftri eng
                 push!(newltris, ftri)
             end
         end
@@ -588,8 +587,7 @@ function refine_to_surface(Γ4::Gamma4{T, P}) where {T, P}
         for ftri in ftris
             isonsurface = false
             for didx in 1:1:Γ4.model.bandnum
-                disp = Γ4.model.dispersion[didx]
-                isonsurface = isonsurface || @onsurface ftri disp 0.
+                isonsurface = isonsurface || @onsurface Γ4.model didx ftri 0.
             end
             if isonsurface
                 push!(refltris, ftri)
@@ -630,8 +628,7 @@ function engpeak_to_surface(Γ4::Gamma4{T, P}) where {T, P}
         #先找到距离哪个能带最近
         bmini = 100.
         for didx in 1:1:Γ4.model.bandnum
-            disp = Γ4.model.dispersion[didx]
-            eng = abs(disp(tri.center.x, tri.center.y))
+            eng = abs(dispersion(Γ4.model, didx, tri.center.x, tri.center.y))
             if eng < bmini
                 bmini = eng
             end
