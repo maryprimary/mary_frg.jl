@@ -2,6 +2,8 @@
 温度流的Bubble积分
 """
 
+using ..Fermi
+
 """
 获取所有的Bubble(pp, fs, nfs, ex, nex)
 qpp = k1+k2; qfs = k3-k2; qex = k1-k3
@@ -22,7 +24,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
     #
     for bidx in 1:1:Γ4.model.bandnum
         posi, peidx = const_energy_line_in_patches(
-            Γ4.ltris, Γ4.ladjs, Γ4.lpats, lamb, Γ4.model.dispersion[bidx]
+            Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, lamb, bidx
         )
         #将正能量的线加到对应的位置上
         for (edg, pidx) in zip(posi, peidx)
@@ -30,7 +32,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         end
         #
         nega, neidx = const_energy_line_in_patches(
-            Γ4.ltris, Γ4.ladjs, Γ4.lpats, -lamb, Γ4.model.dispersion[bidx]
+            Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, -lamb, bidx
         )
         #将负能量的线加到对应的位置上
         for (edg, pidx) in zip(nega, neidx)
@@ -48,11 +50,10 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
     Threads.@threads for idxs in CartesianIndices(bubbval)
         alpha, beta, b1, b2, i_n, i1, i2 = Tuple(idxs)
         k1, k2 = Γ4.patches[b1][i1], Γ4.patches[b2][i2]
-        qpp = Γ4.model.kadd(k1, k2)
+        qpp = kadd(Γ4.model, k1, k2)
         bubbres = pi_αβ_minus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qpp, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qpp, beta
         )
         bubbval[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
     end
@@ -75,17 +76,15 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
     Threads.@threads for idxs in CartesianIndices(bubbval_fs)
         alpha, beta, b2, b3, i_n, i2, i3 = Tuple(idxs)
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
-        qfs = Γ4.model.kadd(k3, -k2)
+        qfs = kadd(Γ4.model, k3, -k2)
         nqfs = -qfs
         bubbres_fs = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qfs, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qfs, beta
         )
         bubbres_nfs = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            nqfs, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, nqfs, beta
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_fs
         bubbval_nfs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_nfs
@@ -110,17 +109,15 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
     Threads.@threads for idxs in CartesianIndices(bubbval_ex)
         alpha, beta, b1, b3, i_n, i1, i3 = Tuple(idxs)
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
-        qex = Γ4.model.kadd(k1, -k3)
+        qex = kadd(Γ4.model, k1, -k3)
         nqex = -qex
         bubbres_ex = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qex, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qex, beta
         )
         bubbres_nex = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            nqex, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, nqex, beta
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_ex
         bubbval_nex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_nex
@@ -142,11 +139,12 @@ area是第一布里渊区的面积\n
 ```k-q到第一布里渊区的映射就处理好了Umklapp```
 """
 function pi_αβ_plus_ec(
+    model::P, 
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function
-)
+    didx::Int64
+) where P <: Fermi.Abstract2DModel
     """
     10.112中的 PI^+(n, q) = +LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(k - Q)
     其中有一个beta是频率积分带来的，2pi^2是动量积分带来的
@@ -181,7 +179,7 @@ function pi_αβ_plus_ec(
         kprim = kval + nega_q
         #kprim = kadd(kval, nega_q)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if -disp_kprim < lamb
             continue
         end
@@ -195,7 +193,7 @@ function pi_αβ_plus_ec(
         kprim = kval + nega_q
         #kprim = kadd(kval, nega_q)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if disp_kprim < lamb
             continue
         end
@@ -219,11 +217,12 @@ area是第一布里渊区的面积\n
 因为算能量的时候，超出第一布里渊区也没有关系，所以不再需要kadd
 """
 function pi_αβ_minus_ec(
+    model::P,
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function
-)
+    didx::Int64
+) where P <: Fermi.Abstract2DModel
     """
     10.112中的 PI^-(n, q) = -LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(- k + Q)
     = -LAMBDA (2pi)^-2 Int_{k in k_n} CITA() -DELTA()
@@ -247,7 +246,7 @@ function pi_αβ_minus_ec(
         kprim = qval - kval
         #kprim = kadd(-kval, qval)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if disp_kprim < lamb
             continue
         end
@@ -261,7 +260,7 @@ function pi_αβ_minus_ec(
         kprim = qval - kval
         #kprim = kadd(-kval, qval)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if -disp_kprim < lamb
             continue
         end

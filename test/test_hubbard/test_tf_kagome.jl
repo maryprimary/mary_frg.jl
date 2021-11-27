@@ -3,7 +3,7 @@
 """
 
 using Plots
-using MARY_fRG.Fermi.Kagome
+using MARY_fRG.Fermi
 using MARY_fRG.FlowEquation
 
 #阻止画图

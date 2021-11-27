@@ -28,10 +28,10 @@ function all_bubble_tf_ult_mt(Γ4::Gamma4{T, P}, cert::Float64) where {T, P}
     Threads.@threads for idxs in CartesianIndices(bubbval_pp)
         alpha, beta, b1, b2, i_n, i1, i2 = Tuple(idxs)
         k1, k2 = Γ4.patches[b1][i1], Γ4.patches[b2][i2]
-        q_pp = Γ4.model.kadd(k1, k2)
+        q_pp = kadd(Γ4.model, k1, k2)
         bubbres = pi_αβ_minus_tf_ult(
-            tris_pat[i_n], brlu_area, cert,
-            q_pp, Γ4.model.dispersion[alpha], Γ4.model.dispersion[beta]
+            Γ4.model, tris_pat[i_n], brlu_area, cert,
+            q_pp, alpha, beta
         )
         bubbval_pp[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
     end
@@ -47,11 +47,10 @@ function all_bubble_tf_ult_mt(Γ4::Gamma4{T, P}, cert::Float64) where {T, P}
     Threads.@threads for idxs in CartesianIndices(bubbval_fs)
         alpha, beta, b2, b3, i_n, i2, i3 = Tuple(idxs)
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
-        q_fs = Γ4.model.kadd(k3, -k2)
+        q_fs = kadd(Γ4.model, k3, -k2)
         bubbres = pi_αβ_plus_tf_ult(
-            tris_pat[i_n], brlu_area, cert,
-            q_fs, Γ4.model.dispersion[alpha],
-            Γ4.model.dispersion[beta]
+            Γ4.model, tris_pat[i_n], brlu_area, cert,
+            q_fs, alpha, beta
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres
     end
@@ -67,11 +66,10 @@ function all_bubble_tf_ult_mt(Γ4::Gamma4{T, P}, cert::Float64) where {T, P}
     Threads.@threads for idxs in CartesianIndices(bubbval_ex)
         alpha, beta, b1, b3, i_n, i1, i3 = Tuple(idxs)
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
-        q_ex = Γ4.model.kadd(k1, -k3)
+        q_ex = kadd(Γ4.model, k1, -k3)
         bubbres = pi_αβ_plus_tf_ult(
-            tris_pat[i_n], brlu_area, cert,
-            q_ex, Γ4.model.dispersion[alpha],
-            Γ4.model.dispersion[beta]
+            Γ4.model, tris_pat[i_n], brlu_area, cert,
+            q_ex, alpha, beta
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres
     end
@@ -86,10 +84,12 @@ end
 温度流的Bubble, 这里必须要保证ltris在费米面上面
 """
 function pi_αβ_plus_tf_ult(
-    ltris::Vector{T},
+    model::P, ltris::Vector{T},
     area::Float64, cert::Float64,
     qval::Point2D,
-    dispα::Function, dispβ::Function) where T <: Basics.AbstractTriangle
+    dαidx::Int64, dβidx::Int64) where {
+        T <: Basics.AbstractTriangle, P <: Fermi.Abstract2DModel
+    }
     """温度流的+
     这里的lamb就是T，ltris中的所有三角都应该要在同一个patch中,
     tarea是每个小三角形的面积(已经不用了)，
@@ -104,12 +104,12 @@ function pi_αβ_plus_tf_ult(
         kprim = kval + nega_q
         #kprim = kadd(kval, nega_q)
         #epsilon_k
-        eps_k = dispα(kval.x, kval.y)
+        eps_k = dispersion(model, dαidx, kval.x, kval.y)
         if !isapprox(eps_k, 0., atol=cert)
             continue
         end
         #epsilon_{k-q}
-        eps_kp = dispβ(kprim.x, kprim.y)
+        eps_kp = dispersion(model, dβidx, kprim.x, kprim.y)
         if !isapprox(eps_kp, 0., atol=cert)
             continue
         end
@@ -119,8 +119,8 @@ function pi_αβ_plus_tf_ult(
             kval = tri.vertex[vidx]
             kprim = kval + nega_q
             #kprim = kadd(kval, nega_q)
-            eps_k = dispα(kval.x, kval.y)
-            eps_kp = dispβ(kprim.x, kprim.y)
+            eps_k = dispersion(model, dαidx, kval.x, kval.y)
+            eps_kp = dispersion(model, dβidx, kprim.x, kprim.y)
             vidx += 1
         end
         #必须反号
@@ -141,10 +141,12 @@ end
 温度流的Bubble, 这里必须要保证ltris在费米面上面
 """
 function pi_αβ_minus_tf_ult(
-    ltris::Vector{T},
+    model::P, ltris::Vector{T},
     area::Float64, cert::Float64,
     qval::Point2D,
-    dispα::Function, dispβ::Function) where T <: Basics.AbstractTriangle
+    dαidx::Int64, dβidx::Int64) where {
+        T <: Basics.AbstractTriangle, P <: Fermi.Abstract2DModel
+    }
     result = 0.
     for tri in ltris
         #这个小三角形的k值
@@ -154,12 +156,12 @@ function pi_αβ_minus_tf_ult(
         kprim = nega_k + qval
         #kprim = kadd(nega_k, qval)
         #epsilon_k
-        eps_k = dispα(kval.x, kval.y)
+        eps_k = dispersion(model, dαidx, kval.x, kval.y)
         if !isapprox(eps_k, 0., atol=cert)
             continue
         end
         #-epsilon_{-k+q}
-        neps_kp = -dispβ(kprim.x, kprim.y)
+        neps_kp = -dispersion(model, dβidx, kprim.x, kprim.y)
         if !isapprox(neps_kp, 0., atol=cert)
             continue
         end
@@ -170,8 +172,8 @@ function pi_αβ_minus_tf_ult(
             nega_k = -kval
             kprim = nega_k + qval
             #kprim = kadd(nega_k, qval)
-            eps_k = dispα(kval.x, kval.y)
-            neps_kp = -dispβ(kprim.x, kprim.y)
+            eps_k = dispersion(model, dαidx, kval.x, kval.y)
+            neps_kp = -dispersion(model, dβidx, kprim.x, kprim.y)
             vidx += 1
         end
         #必须反号，注意这里neps_kp是已经带负号的

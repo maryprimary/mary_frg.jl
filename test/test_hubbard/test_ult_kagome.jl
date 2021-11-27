@@ -4,7 +4,7 @@
 
 using Plots
 using MARY_fRG.Drawers
-using MARY_fRG.Fermi.Kagome
+using MARY_fRG.Fermi
 using MARY_fRG.Fermi.Surface
 using MARY_fRG.FlowEquation
 

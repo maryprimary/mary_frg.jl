@@ -35,7 +35,7 @@ function run_ec()
 end
 
 
-#run_ec()
+run_ec()
 
 
 function run_tf()
@@ -59,4 +59,4 @@ function run_tf()
 end
 
 
-run_tf()
+#run_tf()
