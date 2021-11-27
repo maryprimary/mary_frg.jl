@@ -12,19 +12,11 @@ using MARY_fRG.FlowEquation
     lpats = group_ltris_into_patches_mt(ltris, qs.brillouin, pnum)
     sf = const_energy_line(qs, ltris, ladjs, 0., 1)
     res = pi_αβ_plus_ec(
-<<<<<<< HEAD
-        sf, sf, 4pi^2, 0.2, Point2D(0., 0.2), qs.dispersion[1]
-    )
-    @test isapprox(res, 0.116678333187, atol=1e-12)
-    res = pi_αβ_minus_ec(
-        sf, sf, 4pi^2, 0.2, Point2D(-0.15, 0.), qs.dispersion[1]
-=======
         qs, sf, sf, 4pi^2, 0.2, Point2D(0., 0.2), 1
     )
     @test isapprox(res, 0.116678333187, atol=1e-12)
     res = pi_αβ_minus_ec(
         qs, sf, sf, 4pi^2, 0.2, Point2D(-0.15, 0.), 1
->>>>>>> opti_b
     )
     @test isapprox(res, 0.107264645635, atol=1e-12)
     #
