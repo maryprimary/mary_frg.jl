@@ -1,7 +1,7 @@
 name = "MARY_fRG"
 uuid = "acdd1afc-2c34-48ee-8108-6386b27708c4"
 authors = ["maryprimary <maryprimary@outlook.com>"]
-version = "0.1.6-2"
+version = "0.1.6-3"
 
 [deps]
 JLD = "4138dd39-2aa7-5051-a626-17a0bb65d9c8"
