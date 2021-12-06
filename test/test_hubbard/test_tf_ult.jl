@@ -54,12 +54,12 @@ function run_rftf()
         #end
         #blval = min(lval, 10.0)
         bubb_pp, bubb_fs, bubb_ex = all_bubble_tf_mt(Γ4, lval)
-        println(bubb_pp.V[1, 1, 1, 1, 1:2, 1:2, 1])
-        println(bubb_fs.V[1, 1, 1, 1, 1:2, 1:2, 1])
-        println(bubb_ex.V[1, 1, 1, 1, 1:2, 1:2, 1])
-        if idx > 3
-            throw(error())
-        end
+        #println(bubb_pp.V[1, 1, 1, 1, 1:2, 1:2, 1])
+        #println(bubb_fs.V[1, 1, 1, 1, 1:2, 1:2, 1])
+        #println(bubb_ex.V[1, 1, 1, 1, 1:2, 1:2, 1])
+        #if idx > 3
+        #    throw(error())
+        #end
         dl = dl_tf_mix_ult_mt(Γ4, bubb_pp, bubb_fs, bubb_ex, bpu, bfu, beu)
         Γ4.V .+= dl .* lstep
         if idx % 50 == 1 || idx > 3301

@@ -214,6 +214,13 @@ end
 #一些内建的模型
 #不能在include上面加"""document"""
 
+
+include("surface.jl")
+
+
+include("patch.jl")
+
+
 include("quadrate_lattice.jl")
 
 
@@ -222,11 +229,6 @@ include("triangular_lattice.jl")
 
 include("kagome_lattice.jl")
 
-
-include("surface.jl")
-
-
-include("patch.jl")
 
 end
 

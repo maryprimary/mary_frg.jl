@@ -23,12 +23,18 @@ function run()
     println(nu1[1]*nu1[1] + nu2[1]*nu2[1] + nu3[1]*nu3[1])
     println(nu1[1]*nu1[2] + nu2[1]*nu2[2] + nu3[1]*nu3[2])
     #费米面的路径
-    mpt = Point2D(0, 2*3.1415926 / 1.7320508)
-    mpt2 = Point2D(-3.1415926, 3.1415926 / 1.7320508)
-    mpt3 = Point2D(-3.1415926, -3.1415926 / 1.7320508)
-    mpt4 = Point2D(0, -2*3.1415926 / 1.7320508)
-    mpt5 = Point2D(3.1415926, -3.1415926 / 1.7320508)
-    mpt6 = Point2D(3.1415926, 3.1415926 / 1.7320508)
+    mpt = Point2D(0, 2*BigFloat(π) / sqrt(BigFloat(3)))
+    mpt2 = Point2D(-BigFloat(π), BigFloat(π) / sqrt(BigFloat(3)))
+    mpt3 = Point2D(-BigFloat(π), -BigFloat(π) / sqrt(BigFloat(3)))
+    mpt4 = Point2D(0, -2*BigFloat(π) / sqrt(BigFloat(3)))
+    mpt5 = Point2D(BigFloat(π), -BigFloat(π) / sqrt(BigFloat(3)))
+    mpt6 = Point2D(BigFloat(π), BigFloat(π) / sqrt(BigFloat(3)))
+    #mpt = Point2D(4π/3-0.8, 0)
+    #mpt2 = Point2D(2π/3-0.4, 2π/√3-0.4*√3)
+    #mpt3 = Point2D(-2π/3+0.4, 2π/√3-0.4*√3)
+    #mpt4 = Point2D(-4π/3+0.8, 0)
+    #mpt5 = Point2D(-2π/3+0.4, -2π/√3+0.4*√3)
+    #mpt6 = Point2D(2π/3-0.4, -2π/√3+0.4*√3)
     xvals = [0.0]
     pps = [mpt]
     for idx in 0:1:18
@@ -86,9 +92,12 @@ function run()
     sitec = []
     for kkt in pps
         nu1, nu2, nu3 = get_kagome_ν(kkt.x, kkt.y)
-        push!(sitea, abs(nu2[1]))
-        push!(siteb, abs(nu2[2]))
-        push!(sitec, abs(nu2[3]))
+        push!(sitea, nu2[1])
+        push!(siteb, nu2[2])
+        push!(sitec, nu2[3])
+        #push!(sitea, abs(nu2[1]))
+        #push!(siteb, abs(nu2[2]))
+        #push!(sitec, abs(nu2[3]))
     end
     println(siteb)
     plt = plot(xvals, sitea)
@@ -104,9 +113,12 @@ function run()
     #print(check_patches_converge(pps[10]))
     for kkt in pps
         nu1, nu2, nu3 = get_kagome_ν(kkt.x, kkt.y)
-        push!(sitea, abs(nu3[1]))
-        push!(siteb, abs(nu3[2]))
-        push!(sitec, abs(nu3[3]))
+        push!(sitea, nu3[1])
+        push!(siteb, nu3[2])
+        push!(sitec, nu3[3])
+        #push!(sitea, abs(nu3[1]))
+        #push!(siteb, abs(nu3[2]))
+        #push!(sitec, abs(nu3[3]))
     end
     plt = plot(xvals, sitea)
     plot!(plt, xvals, siteb)
@@ -122,6 +134,41 @@ end
 
 #run()
 
+
+function run2()
+    mat = zeros(999, 999)
+    for idx in CartesianIndices(mat)
+        idx1, idx2 = Tuple(idx)
+        kx = 4*π*(idx1 - 500) / 500 / 3
+        ky = 4*π*(idx2 - 500) / 500 / 3
+        x::BigFloat = BigFloat(kx) / BigFloat(4)
+        y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)
+        sqr = 2 * cos(2*x - 2*y)
+        sqr += 2 * cos(2*x + 2*y)
+        sqr += 2 * cos(4*x) + 3
+        mat[idx1, idx2] = 1 - sqrt(sqr)
+    end
+    heatmap(mat)
+    png("band2")
+    sitea = []
+    siteb = []
+    sitec = []
+    for aidx in 1:1:1000
+        ang = 2*π*(aidx - 1) / 1000
+        kx = 1.75*cos(ang)
+        ky = 1.75*sin(ang)
+        nu1, nu2, nu3 = get_kagome_ν(kx, ky)
+        push!(sitea, nu2[1])
+        push!(siteb, nu2[2])
+        push!(sitec, nu2[3])
+    end
+    plt = plot(1:1:1000, sitea)
+    plot!(plt, 1:1:1000, siteb)
+    plot!(plt, 1:1:1000, sitec)
+    png(plt, "kag_band_contrib3")
+end
+
+run2()
 
 """
 相互作用
@@ -209,4 +256,4 @@ function kprofile()
     @time bpu, bfu, beu = get_ult_bubb(Γ4)
 end
 
-kprofile()
+#kprofile()

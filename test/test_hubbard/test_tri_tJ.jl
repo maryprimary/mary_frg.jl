@@ -18,7 +18,7 @@ function run()
         model, 6.85, 18, 50
     )
     Γ4.V[1, 1, 1, 1, :, :, :] .+= triangular_system_heisenberg(
-        Γ4.patches[1], Γ4.model.kadd, 1.0
+        Γ4.model, Γ4.patches[1], 1.0
     )
     lval = 0.
     lstep = 0.01

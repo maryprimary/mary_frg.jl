@@ -4,6 +4,10 @@ kagome lattice的相关功能
 
 using ..Fermi
 
+#using ..Fermi.Patch
+#using LinearAlgebra
+#using GenericLinearAlgebra
+
 export upperband_kagome_lattice
 export wuxx_av3sb5_kagome_lattice
 #export upperband_kagome_lattice2
@@ -101,8 +105,31 @@ function get_kagome_ν(kx, ky)
         kx = 1e-10
         ky = -1e-10
     end
-    x::BigFloat = kx / BigFloat(4)
-    y::BigFloat = BigFloat(√3) * ky / BigFloat(4)
+    x::BigFloat = BigFloat(kx) / BigFloat(4)
+    y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)
+    #mat = zeros(ComplexF64, 3, 3)
+    #mat[1, 2] = 1 + exp(-im*(2x+2y))#2cos(2x)
+    #mat[1, 3] = 1 + exp(im*(-2x+2y))#exp(-im*(4x))#2cos(x+y)
+    #mat[2, 3] = 1 + exp(-im*(4x))#exp(im*(-2x+2y))#2cos(-x+y)
+    #mat[2, 1] = 1 + exp(im*(2x+2y))#2cos(2x)
+    #mat[3, 1] = 1 + exp(-im*(-2x+2y))#exp(im*(4x))#2cos(x+y)
+    #mat[3, 2] = 1 + exp(im*(4x))#exp(-im*(-2x+2y))#2cos(-x+y)
+    #evals, evecs = eigen(mat)
+    ##println(transpose(evecs)*mat*evecs)
+    ##println(evals)
+    #nu1 = real(evecs[:, 1])
+    ##if nu1[1] < 0
+    ##    nu1 = -nu1
+    ##end
+    #nu2 = real(evecs[:, 2])
+    ##if nu2[1] < 0
+    ##    nu2 = -nu2
+    ##end
+    #nu3 = real(evecs[:, 3])
+    ##if nu3[1] < 0
+    ##    nu3 = -nu3
+    ##end
+    #return nu1, nu2, nu3
     sqr::BigFloat = 2 * cos(2*x - 2*y)
     sqr::BigFloat += 2 * cos(2*x + 2*y)
     sqr::BigFloat += 2 * cos(4*x) + 3
@@ -185,7 +212,7 @@ end
 """
 获取A V_3 Sb_5相互作用在能带下的表示
 """
-function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2)
+function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
     npat = length(pinfos1)
     if length(pinfos2) != npat
         throw(error("pat数量对不上"))
@@ -193,6 +220,11 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2)
     #
     ret = zeros(2, 2, 2, 2, npat, npat, npat)
     place_holder = Array{Int8, 3}(undef, npat, npat, npat)
+    #六度对称
+    symmsector = Int64(npat // 6)
+    if usesymm
+        place_holder = Array{Int8, 3}(undef, symmsector, npat, npat)
+    end
     #能带内的相互作用
     #第一条能带是靠上的能带
     @Threads.threads for idxs in CartesianIndices(place_holder)
@@ -267,5 +299,41 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2)
             k21nu[sidx] * k31nu[sidx] * k42nu[sidx]
         end
     end
+    if usesymm
+        symm_holder = Array{Int8, 3}(undef, 5, npat, npat)
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k2i, k3i = Tuple(idxs)
+            offset = sec*symmsector
+            nk2i = k2i - offset
+            nk2i = nk2i < 1 ? nk2i + npat : nk2i
+            nk3i = k3i - offset
+            nk3i = nk3i < 1 ? nk3i + npat : nk3i
+            #
+            ret[1, 1, 1, 1, 1+offset:symmsector+offset, k2i, k3i] =
+            ret[1, 1, 1, 1, 1:symmsector, nk2i, nk3i]
+            #
+            ret[2, 2, 2, 2, 1+offset:symmsector+offset, k2i, k3i] =
+            ret[2, 2, 2, 2, 1:symmsector, nk2i, nk3i]
+            #
+            ret[1, 2, 2, 1, 1+offset:symmsector+offset, k2i, k3i] =
+            ret[1, 2, 2, 1, 1:symmsector, nk2i, nk3i]
+            #
+            ret[2, 1, 1, 2, 1+offset:symmsector+offset, k2i, k3i] =
+            ret[2, 1, 1, 2, 1:symmsector, nk2i, nk3i]
+            #
+        end
+    end
     return ret
 end
+
+
+"""
+wuxx格子上的近邻V
+1/2 (n_{1i} n_{1j} + n_{1j}n_{1i} + n_{2i} n_{2j} + n_{2j}n_{2i}
+n_{1i} n_{2j} + n_{2j}n_{1i} + n_{1i} n_{2j} + n_{2j}n_{1i}
+)
+"""
+function get_wuxx_V_mt()
+    
+end
+
