@@ -96,8 +96,15 @@ function ECGamma4(
         k3p = mpats[m3][k3]
         k4p = kadd(model, k1p, k2p)
         k4p = kadd(model, k4p, -k3p)
-        k4tab[m1, m2, m3, m4, k1, k2, k3] =
-        find_algo(k4p, model.brillouin, patchnum)
+        #k4tab[m1, m2, m3, m4, k1, k2, k3] =
+        mpidx = find_algo(k4p, model.brillouin, patchnum)
+        #如果在原点，根据对称性选一个
+        if ismissing(mpidx)
+            mpidx = k1 + k2 - k3
+            mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+            mpidx = mod(mpidx-1, patchnum) + 1
+        end
+        k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
     end
     #
     split_algo = isa(model, QuadrateSystem) ? split_square :
@@ -148,8 +155,15 @@ function TFGamma4(
         k3p = mpats[m3][k3]
         k4p = kadd(model, k1p, k2p)
         k4p = kadd(model, k4p, -k3p)
-        k4tab[m1, m2, m3, m4, k1, k2, k3] =
-        find_algo(k4p, model.brillouin, patchnum)
+        #k4tab[m1, m2, m3, m4, k1, k2, k3] =
+        mpidx = find_algo(k4p, model.brillouin, patchnum)
+        #如果在原点，根据对称性选一个
+        if ismissing(mpidx)
+            mpidx = k1 + k2 - k3
+            mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+            mpidx = mod(mpidx-1, patchnum) + 1
+        end
+        k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
     end
     #
     split_algo = isa(model, QuadrateSystem) ? split_square :

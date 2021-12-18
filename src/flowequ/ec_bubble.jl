@@ -8,7 +8,7 @@ using ..Fermi
 获取所有的Bubble(pp, fs, nfs, ex, nex)
 qpp = k1+k2; qfs = k3-k2; qex = k1-k3
 """
-function all_bubble_ec_mt(Γ4::Gamma4, lval)
+function all_bubble_ec_mt(Γ4::Gamma4, lval; usesymm=true)
     #
     lamb = Γ4.λ_0 * exp(-lval)
     brlu_area = area(Γ4.model.brillouin)
@@ -39,6 +39,20 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
             push!(negamat[bidx, pidx], edg)
         end
     end
+    place_holder = Array{Int8, 7}(
+        undef,
+        Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum,
+        Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
+    )
+    if usesymm
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        place_holder = Array{Int8, 7}(
+            undef,
+            Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum,
+            symmsector, Γ4.patchnum, Γ4.patchnum
+        )
+    end
     #计算pp散射的bubble
     bubbval = Array{Float64, 7}(
         undef,
@@ -47,7 +61,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k1(b1), k2(b2)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b1, b2, i_n, i1, i2 = Tuple(idxs)
         k1, k2 = Γ4.patches[b1][i1], Γ4.patches[b2][i2]
         qpp = kadd(Γ4.model, k1, k2)
@@ -56,6 +70,26 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
             brlu_area, lamb, qpp, beta
         )
         bubbval[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k1i, k2i = Tuple(idxs)
+            offset = sec*symmsector
+            nk1i = k1i - offset
+            nk1i = nk1i < 1 ? nk1i + Γ4.patchnum : nk1i
+            nk2i = k2i - offset
+            nk2i = nk2i < 1 ? nk2i + Γ4.patchnum : nk2i
+            bubbval[:, :, :, :, 1+offset:symmsector+offset, k1i, k2i] =
+            bubbval[:, :, :, :, 1:symmsector, nk1i, nk2i]
+        end
     end
     bubb_qpp = Bubble{:ec, :minus}(lval, bubbval)
     #计算fs和-fs
@@ -73,7 +107,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k2(b2), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval_fs)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b2, b3, i_n, i2, i3 = Tuple(idxs)
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
         qfs = kadd(Γ4.model, k3, -k2)
@@ -88,6 +122,28 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_fs
         bubbval_nfs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_nfs
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k2i, k3i = Tuple(idxs)
+            offset = sec*symmsector
+            nk2i = k2i - offset
+            nk2i = nk2i < 1 ? nk2i + Γ4.patchnum : nk2i
+            nk3i = k3i - offset
+            nk3i = nk3i < 1 ? nk3i + Γ4.patchnum : nk3i
+            bubbval_fs[:, :, :, :, 1+offset:symmsector+offset, k2i, k3i] =
+            bubbval_fs[:, :, :, :, 1:symmsector, nk2i, nk3i]
+            bubbval_nfs[:, :, :, :, 1+offset:symmsector+offset, k2i, k3i] =
+            bubbval_nfs[:, :, :, :, 1:symmsector, nk2i, nk3i]
+        end
     end
     bubb_qfs = Bubble{:ec, :plus}(lval, bubbval_fs)
     bubb_nqfs = Bubble{:ec, :plus}(lval, bubbval_nfs)
@@ -106,7 +162,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k1(b1), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval_ex)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b1, b3, i_n, i1, i3 = Tuple(idxs)
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
         qex = kadd(Γ4.model, k1, -k3)
@@ -121,6 +177,28 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_ex
         bubbval_nex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_nex
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k1i, k3i = Tuple(idxs)
+            offset = sec*symmsector
+            nk1i = k1i - offset
+            nk1i = nk1i < 1 ? nk1i + Γ4.patchnum : nk1i
+            nk3i = k3i - offset
+            nk3i = nk3i < 1 ? nk3i + Γ4.patchnum : nk3i
+            bubbval_ex[:, :, :, :, 1+offset:symmsector+offset, k1i, k3i] =
+            bubbval_ex[:, :, :, :, 1:symmsector, nk1i, nk3i]
+            bubbval_nex[:, :, :, :, 1+offset:symmsector+offset, k1i, k3i] =
+            bubbval_nex[:, :, :, :, 1:symmsector, nk1i, nk3i]
+        end
     end
     bubb_qex = Bubble{:ec, :plus}(lval, bubbval_ex)
     bubb_nqex = Bubble{:ec, :plus}(lval, bubbval_nex)

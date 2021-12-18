@@ -18,10 +18,10 @@ using MARY_fRG.FlowEquation
 """
 function channel_noQ(model::P, V,
     kpats::Vector{Point2D}, ppats::Vector{Point2D}) where P <: Fermi.Abstract2DModel
-    Vssc = zeros(length(kpats), length(ppats))
-    Vtsc = zeros(length(kpats), length(ppats))
-    Vspi = zeros(length(kpats), length(ppats))
-    Vtpi = zeros(length(kpats), length(ppats))
+    Vssc = zeros(ComplexF64, length(kpats), length(ppats))
+    Vtsc = zeros(ComplexF64, length(kpats), length(ppats))
+    Vspi = zeros(ComplexF64, length(kpats), length(ppats))
+    Vtpi = zeros(ComplexF64, length(kpats), length(ppats))
     #寻找patch编号
     findpidx = isa(model, QuadrateSystem) ? find_patch_index_squa :
     find_patch_index_hexa
@@ -45,25 +45,56 @@ end
 """
 验证是否满足旋转对称性
 """
-function rotation_check(V, model, pats1, pats2)
+function rotation_check(V, model, pats1, pats2; sailence=false)
     Vssc, Vtsc, Vspi, Vtpi = channel_noQ(model, V, pats1, pats2)
-    #验证6度对称性
-    gap = Int64(length(pats1) // 6)
+    symm = true
+    #验证
+    if isa(model, Fermi.TriangularSystem)
+        gap = Int64(length(pats1) // 6)
+    else
+        gap = Int64(length(pats1) // 4)
+    end
     for idx in 1:1:length(pats1)-gap
         if !isapprox(Vssc[idx, idx], Vssc[idx+gap, idx+gap])
-            println("Vssc ", idx, " != ", idx+gap)
-        #else
-            println(Vssc[idx, idx], " ", Vssc[idx+gap, idx+gap])
+            symm = false
+            if !sailence
+                println("Vssc ", idx, " != ", idx+gap)
+                println(Vssc[idx, idx], " ", Vssc[idx+gap, idx+gap])
+            end
         end
     end
     #验证6度对称性
-    gap = Int64(length(pats1) // 6)
     for idx1 in 1:1:length(pats1)-gap; for idx2 in 1:1:length(pats1)-gap; for idx3 in 1:1:length(pats1)-gap
         if !isapprox(V[idx1, idx2, idx3], V[idx1+gap, idx2+gap, idx3+gap])
+            symm = false
+            if !sailence
+                println("V[", idx1, ",", idx2, ",", idx3, "] != V[", idx1+gap, ",", idx2+gap, ",", idx3+gap, "]")
+                println(V[idx1, idx2, idx3], " ", V[idx1+gap, idx2+gap, idx3+gap])
+            end
+        end
+    end; end; end
+    println("rotation_check finish")
+    return symm
+end
+
+
+"""
+验证是否满足旋转对称性
+"""
+function rotation_check2(V, model, pats1, pats2)
+    #验证
+    if isa(model, Fermi.TriangularSystem)
+        gap = Int64(length(pats1) // 6)
+    else
+        gap = Int64(length(pats1) // 4)
+    end
+    for idx1 in 1:1:length(pats1)-gap; for idx2 in 1:1:length(pats1)-gap; for idx3 in 1:1:length(pats1)-gap
+        gdiff = V[idx1+gap, idx2+gap, idx3+gap] - V[idx1, idx2, idx3]
+        if gdiff != gap && gdiff != gap - length(pats1)
             println("V[", idx1, ",", idx2, ",", idx3, "] != V[", idx1+gap, ",", idx2+gap, ",", idx3+gap, "]")
+        #else
             println(V[idx1, idx2, idx3], " ", V[idx1+gap, idx2+gap, idx3+gap])
         end
     end; end; end
     println("rotation_check finish")
 end
-

@@ -23,12 +23,12 @@ function run()
     println(nu1[1]*nu1[1] + nu2[1]*nu2[1] + nu3[1]*nu3[1])
     println(nu1[1]*nu1[2] + nu2[1]*nu2[2] + nu3[1]*nu3[2])
     #费米面的路径
-    mpt = Point2D(0, 2*BigFloat(π) / sqrt(BigFloat(3)))
-    mpt2 = Point2D(-BigFloat(π), BigFloat(π) / sqrt(BigFloat(3)))
-    mpt3 = Point2D(-BigFloat(π), -BigFloat(π) / sqrt(BigFloat(3)))
-    mpt4 = Point2D(0, -2*BigFloat(π) / sqrt(BigFloat(3)))
-    mpt5 = Point2D(BigFloat(π), -BigFloat(π) / sqrt(BigFloat(3)))
-    mpt6 = Point2D(BigFloat(π), BigFloat(π) / sqrt(BigFloat(3)))
+    mpt = Point2D(0, 2*π / sqrt(3))
+    mpt2 = Point2D(-π, π / sqrt(3))
+    mpt3 = Point2D(-π, -π / sqrt(3))
+    mpt4 = Point2D(0, -2*π / sqrt(3))
+    mpt5 = Point2D(π, -π / sqrt(3))
+    mpt6 = Point2D(π, π / sqrt(3))
     #mpt = Point2D(4π/3-0.8, 0)
     #mpt2 = Point2D(2π/3-0.4, 2π/√3-0.4*√3)
     #mpt3 = Point2D(-2π/3+0.4, 2π/√3-0.4*√3)
@@ -38,7 +38,7 @@ function run()
     xvals = [0.0]
     pps = [mpt]
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, omega)
         push!(pps, middle_point(mpt, mpt2; sc1=1-omega, sc2=omega))
     end
@@ -52,35 +52,35 @@ function run()
     push!(xvals, 1.0)
     push!(pps, mpt2)
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, 1+omega)
         push!(pps, middle_point(mpt2, mpt3; sc1=1-omega, sc2=omega))
     end
     push!(xvals, 2.0)
     push!(pps, mpt3)
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, 2+omega)
         push!(pps, middle_point(mpt3, mpt4, sc1=1-omega, sc2=omega))
     end
     push!(xvals, 3.0)
     push!(pps, mpt4)
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, 3+omega)
         push!(pps, middle_point(mpt4, mpt5, sc1=1-omega, sc2=omega))
     end
     push!(xvals, 4.0)
     push!(pps, mpt5)
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, 4+omega)
         push!(pps, middle_point(mpt5, mpt6, sc1=1-omega, sc2=omega))
     end
     push!(xvals, 5.0)
     push!(pps, mpt6)
     for idx in 0:1:18
-        omega = (idx+1) / 20
+        omega = (idx+1) / 19
         push!(xvals, 5+omega)
         push!(pps, middle_point(mpt6, mpt, sc1=1-omega, sc2=omega))
     end
@@ -113,12 +113,12 @@ function run()
     #print(check_patches_converge(pps[10]))
     for kkt in pps
         nu1, nu2, nu3 = get_kagome_ν(kkt.x, kkt.y)
-        push!(sitea, nu3[1])
-        push!(siteb, nu3[2])
-        push!(sitec, nu3[3])
-        #push!(sitea, abs(nu3[1]))
-        #push!(siteb, abs(nu3[2]))
-        #push!(sitec, abs(nu3[3]))
+        #push!(sitea, nu3[1])
+        #push!(siteb, nu3[2])
+        #push!(sitec, nu3[3])
+        push!(sitea, abs(nu3[1]))
+        push!(siteb, abs(nu3[2]))
+        push!(sitec, abs(nu3[3]))
     end
     plt = plot(xvals, sitea)
     plot!(plt, xvals, siteb)
@@ -132,7 +132,7 @@ function run()
 end
 
 
-#run()
+run()
 
 
 function run2()
@@ -158,9 +158,9 @@ function run2()
         kx = 1.75*cos(ang)
         ky = 1.75*sin(ang)
         nu1, nu2, nu3 = get_kagome_ν(kx, ky)
-        push!(sitea, nu2[1])
-        push!(siteb, nu2[2])
-        push!(sitec, nu2[3])
+        push!(sitea, abs(nu2[1]))
+        push!(siteb, abs(nu2[2]))
+        push!(sitec, abs(nu2[3]))
     end
     plt = plot(1:1:1000, sitea)
     plot!(plt, 1:1:1000, siteb)
@@ -168,7 +168,7 @@ function run2()
     png(plt, "kag_band_contrib3")
 end
 
-run2()
+#run2()
 
 """
 相互作用

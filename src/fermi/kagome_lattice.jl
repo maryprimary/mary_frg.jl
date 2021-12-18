@@ -3,9 +3,9 @@ kagome lattice的相关功能
 """
 
 using ..Fermi
-
 #using ..Fermi.Patch
-#using LinearAlgebra
+
+using LinearAlgebra
 #using GenericLinearAlgebra
 
 export upperband_kagome_lattice
@@ -105,78 +105,88 @@ function get_kagome_ν(kx, ky)
         kx = 1e-10
         ky = -1e-10
     end
-    x::BigFloat = BigFloat(kx) / BigFloat(4)
-    y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)
-    #mat = zeros(ComplexF64, 3, 3)
-    #mat[1, 2] = 1 + exp(-im*(2x+2y))#2cos(2x)
-    #mat[1, 3] = 1 + exp(im*(-2x+2y))#exp(-im*(4x))#2cos(x+y)
-    #mat[2, 3] = 1 + exp(-im*(4x))#exp(im*(-2x+2y))#2cos(-x+y)
-    #mat[2, 1] = 1 + exp(im*(2x+2y))#2cos(2x)
-    #mat[3, 1] = 1 + exp(-im*(-2x+2y))#exp(im*(4x))#2cos(x+y)
-    #mat[3, 2] = 1 + exp(im*(4x))#exp(-im*(-2x+2y))#2cos(-x+y)
-    #evals, evecs = eigen(mat)
-    ##println(transpose(evecs)*mat*evecs)
-    ##println(evals)
-    #nu1 = real(evecs[:, 1])
-    ##if nu1[1] < 0
-    ##    nu1 = -nu1
-    ##end
-    #nu2 = real(evecs[:, 2])
-    ##if nu2[1] < 0
-    ##    nu2 = -nu2
-    ##end
-    #nu3 = real(evecs[:, 3])
-    ##if nu3[1] < 0
-    ##    nu3 = -nu3
-    ##end
-    #return nu1, nu2, nu3
-    sqr::BigFloat = 2 * cos(2*x - 2*y)
-    sqr::BigFloat += 2 * cos(2*x + 2*y)
-    sqr::BigFloat += 2 * cos(4*x) + 3
-    if sqr < 0
-        sqr = 0
+    #x::BigFloat = BigFloat(kx) / BigFloat(4)
+    #y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)
+    #mat = zeros(3, 3)
+    #mat[1, 2] = 2cos(x+y)
+    #mat[1, 3] = 2cos(2x)
+    #mat[2, 3] = 2cos(-x+y)
+    #mat[2, 1] = 2cos(x+y)
+    #mat[3, 1] = 2cos(2x)
+    #mat[3, 2] = 2cos(-x+y)
+    mat = zeros(3, 3)
+    mat[1, 2] = 2cos(kx/4+√3*ky/4)#1 + exp(-im*(kx/2+√3*ky/2))
+    mat[1, 3] = 2cos(kx/2)#1 + exp(-im*(kx))
+    mat[2, 3] = 2cos(kx/4-√3*ky/4)#1 + exp(-im*(kx/2 - √3*ky/2))
+    mat[2, 1] = 2cos(kx/4+√3*ky/4)#1 + exp(im*(kx/2+√3*ky/2))
+    mat[3, 1] = 2cos(kx/2)#1 + exp(im*(kx))
+    mat[3, 2] = 2cos(kx/4-√3*ky/4)#1 + exp(im*(kx/2 - √3*ky/2))
+    evals, evecs = eigen(mat)
+    #println(transpose(evecs)*mat*evecs)
+    #println(evals)
+    nu1 = evecs[:, 1]
+    if abs(minimum(nu1)) > maximum(nu1) + eps()
+        nu1 = -nu1
     end
-    #第一组
-    nu1::Vector{BigFloat} = zeros(BigFloat, 3)
-    nu1[1] = -cos(2*x)/2 + cos(2*y)/2
-    nu1[2] = -cos(x-y)/2 + cos(3*x+y)/2
-    nu1[3] = 1 - cos(x+y)^2
-    #归一化
-    n1 = nu1[1]^2 + nu1[2]^2 + nu1[3]^2
-    n1 = 1.0 / sqrt(n1)
-    #println(nu1)
-    nu1 = n1 * nu1
-    #println(nu1)
-    #println("=======")
-    #
-    nu2::Vector{BigFloat} = zeros(BigFloat, 3)
-    #第二组本征态
-    lamb2::BigFloat = 1 - sqrt(sqr)
-    nu2[1] = 0.5*(lamb2^2) - 2*(cos(x-y)^2)
-    nu2[2] = 2*cos(2*x)*cos(x-y) + cos(x+y)*lamb2
-    nu2[3] = cos(2*x)*lamb2 + 2*cos(x-y)*cos(x+y)
-    #归一化
-    #println(nu2)
-    n2 = nu2[1]^2 + nu2[2]^2 + nu2[3]^2
-    n2 = 1.0 / sqrt(n2)
-    nu2 = n2 * nu2
-    #println(nu2)
-    #println("**********")
-    #
-    nu3::Vector{BigFloat} = zeros(BigFloat, 3)
-    #第三组本征态
-    lamb3::BigFloat = 1 + sqrt(sqr)
-    nu3[1] = 0.5*(lamb3^2) - 2*(cos(x-y)^2)
-    nu3[2] = 2*cos(2*x)*cos(x-y) + cos(x+y)*lamb3
-    nu3[3] = cos(2*x)*lamb3 + 2*cos(x-y)*cos(x+y)
-    #归一化
-    #println(nu3)
-    n3 = nu3[1]^2 + nu3[2]^2 + nu3[3]^2
-    n3 = 1.0 / sqrt(n3)
-    nu3 = n3 * nu3
-    #println(nu3)
-    #println("~~~~~~~~")
+    nu2 = evecs[:, 2]
+    if abs(minimum(nu2)) > maximum(nu2) + eps()
+        nu2 = -nu2
+    end
+    nu3 = evecs[:, 3]
+    if abs(minimum(nu3)) > maximum(nu3) + eps()
+        nu3 = -nu3
+    end
     return nu1, nu2, nu3
+    #sqr::BigFloat = 2 * cos(2*x - 2*y)
+    #sqr::BigFloat += 2 * cos(2*x + 2*y)
+    #sqr::BigFloat += 2 * cos(4*x) + 3
+    #if sqr < 0
+    #    sqr = 0
+    #end
+    ##第一组
+    #nu1::Vector{BigFloat} = zeros(BigFloat, 3)
+    #nu1[1] = -cos(2*x)/2 + cos(2*y)/2
+    #nu1[2] = -cos(x-y)/2 + cos(3*x+y)/2
+    #nu1[3] = 1 - cos(x+y)^2
+    ##归一化
+    #n1 = nu1[1]^2 + nu1[2]^2 + nu1[3]^2
+    #n1 = 1.0 / sqrt(n1)
+    ##println(nu1)
+    #nu1 = n1 * nu1
+    ##println(nu1)
+    ##println("=======")
+    ##
+    #nu2::Vector{BigFloat} = zeros(BigFloat, 3)
+    ##第二组本征态
+    #lamb2::BigFloat = 1 - sqrt(sqr)
+    #nu2[1] = 0.5*(lamb2^2) - 2*(cos(x-y)^2)
+    #nu2[2] = 2*cos(2*x)*cos(x-y) + cos(x+y)*lamb2
+    #nu2[3] = cos(2*x)*lamb2 + 2*cos(x-y)*cos(x+y)
+    ##归一化
+    ##println(nu2)
+    #n2 = nu2[1]^2 + nu2[2]^2 + nu2[3]^2
+    ##n2 = 1.0 / sqrt(n2)
+    ##nu2 = n2 * nu2
+    #if abs(minimum(nu2)) > maximum(nu2)
+    #    nu2 = -nu2
+    #end
+    ##println(nu2)
+    ##println("**********")
+    ##
+    #nu3::Vector{BigFloat} = zeros(BigFloat, 3)
+    ##第三组本征态
+    #lamb3::BigFloat = 1 + sqrt(sqr)
+    #nu3[1] = 0.5*(lamb3^2) - 2*(cos(x-y)^2)
+    #nu3[2] = 2*cos(2*x)*cos(x-y) + cos(x+y)*lamb3
+    #nu3[3] = cos(2*x)*lamb3 + 2*cos(x-y)*cos(x+y)
+    ##归一化
+    ##println(nu3)
+    #n3 = nu3[1]^2 + nu3[2]^2 + nu3[3]^2
+    #n3 = 1.0 / sqrt(n3)
+    #nu3 = n3 * nu3
+    ##println(nu3)
+    ##println("~~~~~~~~")
+    #return nu1, nu2, nu3
 end
 
 
@@ -271,23 +281,24 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
         k1v1 = pinfos1[k1i]
         k2v1 = pinfos1[k2i]
         k3v1 = pinfos1[k3i]
-        k4v1 = Fermi.hexagon_kadd2(k1v1, k2v1)
-        k4v1 = Fermi.hexagon_kadd2(k4v1, -k3v1)
         #第一个能带的系数
         _, k11nu, _ = get_kagome_ν(k1v1.x, k1v1.y)
         _, k21nu, _ = get_kagome_ν(k2v1.x, k2v1.y)
         _, k31nu, _ = get_kagome_ν(k3v1.x, k3v1.y)
-        _, k41nu, _ = get_kagome_ν(k4v1.x, k4v1.y)
         #第二个能带的patches
         k1v2 = pinfos2[k1i]
         k2v2 = pinfos2[k2i]
         k3v2 = pinfos2[k3i]
-        k4v2 = Fermi.hexagon_kadd2(k1v2, k2v2)
-        k4v2 = Fermi.hexagon_kadd2(k4v2, -k3v2)
         #第二个能带的系数
         _, _, k12nu = get_kagome_ν(k1v2.x, k1v2.y)
         _, _, k22nu = get_kagome_ν(k2v2.x, k2v2.y)
         _, _, k32nu = get_kagome_ν(k3v2.x, k3v2.y)
+        #两个k4和系数
+        k4v1 = Fermi.hexagon_kadd2(k1v1, k2v2)
+        k4v1 = Fermi.hexagon_kadd2(k4v1, -k3v2)
+        _, k41nu, _ = get_kagome_ν(k4v1.x, k4v1.y)
+        k4v2 = Fermi.hexagon_kadd2(k1v2, k2v1)
+        k4v2 = Fermi.hexagon_kadd2(k4v2, -k3v1)
         _, _, k42nu = get_kagome_ν(k4v2.x, k4v2.y)
         #计算数值
         #对于同能带U来说，自旋的求和up，dn和dn，up重复两次，再除2，正好一倍

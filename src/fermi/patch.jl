@@ -17,6 +17,9 @@ export get_k4_table
 在六角型的区域里找到属于哪个patch
 """
 function find_patch_index_hexa(pt::Point2D, hexa::Basics.AbstractHexagon{:EQ}, pnum::Int64)
+    if abs(pt.x) < 1e-8 && abs(pt.y) < 1e-8
+        return missing
+    end
     #把六边型分成六瓣
     pre_pnum = Int64(pnum // 6)
     #找到属于哪个以后，先转到水平的左侧那个上面
@@ -69,6 +72,9 @@ end
 """
 function find_patch_index_squa(pt::Point2D,
     squa::Basics.AbstractRectangle{:AXISSQUARE}, pnum::Int64)
+    if abs(pt.x) < 1e-8 && abs(pt.y) < 1e-8
+        return missing
+    end
     #把正方形分成4份
     pre_pnum = Int64(pnum // 4)
     #先转到左上角的那个里面
@@ -117,7 +123,12 @@ function group_ltris_into_patches_mt(
     lpats = Vector{Int64}(undef, length(ltris))
     Threads.@threads for idx in 1:1:length(ltris) # (idx, tri) in enumerate(ltris)
         tri = ltris[idx]
-        lpats[idx] = find_algo(tri.center, brlu, pnum)
+        #lpats[idx] = find_algo(tri.center, brlu, pnum)
+        tpat = find_algo(tri.center, brlu, pnum)
+        if ismissing(tpat)
+            tpat = 1
+        end
+        lpats[idx] = tpat
     end
     return lpats
 end
@@ -169,7 +180,8 @@ function patches_under_vonhove(
     sang = isa(model.brillouin, Basics.AbstractHexagon{:EQ}) ? -pi / 6 : 0
     patches = Vector{Point2D}(undef, pnum)
     for idx = 1:1:pnum
-        ang = (idx - 0.5) * dang + sang
+        #稍微偏离一些防止正好卡在patch边界的k4
+        ang = (idx - π/6) * dang + sang
         root = bisect_fermi_suface(ang, model, bandidx, 0., radius)
         patches[idx] = Point2D(root*cos(ang), root*sin(ang))
     end
