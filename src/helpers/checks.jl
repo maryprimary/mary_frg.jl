@@ -98,3 +98,25 @@ function rotation_check2(V, model, pats1, pats2)
     end; end; end
     println("rotation_check finish")
 end
+
+
+
+"""
+验证k4tab的对称性
+"""
+function reflection_check2(k4tab)
+    npat = size(k4tab)[1]
+    for idxs in CartesianIndices(k4tab)
+        k1i, k2i, k3i = Tuple(idxs)
+        k4i = k4tab[k1i, k2i, k3i]
+        k1i2 = k4tab[k4i, k3i, k2i]
+        if k1i2 != k1i
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not full inverse")
+        end
+        k3i2 = k4tab[k2i, k1i, k4i]
+        if k3i2 != k3i
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not anti inverse")
+        end
+    end
+    println("reflection_check finish")
+end

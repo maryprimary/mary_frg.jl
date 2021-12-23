@@ -222,7 +222,9 @@ end
 """
 获取A V_3 Sb_5相互作用在能带下的表示
 """
-function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
+function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
+    pinfos1 = Γ4.patches[1]
+    pinfos2 = Γ4.patches[2]
     npat = length(pinfos1)
     if length(pinfos2) != npat
         throw(error("pat数量对不上"))
@@ -242,8 +244,10 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
         k1v = pinfos1[k1i]
         k2v = pinfos1[k2i]
         k3v = pinfos1[k3i]
-        k4v = Fermi.hexagon_kadd2(k1v, k2v)
-        k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        #k4v = Fermi.hexagon_kadd2(k1v, k2v)
+        #k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        k4i = Γ4.k4tab[1, 1, 1, 1, k1i, k2i, k3i]#Patch.find_patch_index_hexa(k4v, EqHexagon(Point2D(0., 0.), 4pi/3.0), npat)
+        k4v = pinfos1[k4i]
         #p这个带只需要第二个
         _, k1nu, _ = get_kagome_ν(k1v.x, k1v.y)
         _, k2nu, _ = get_kagome_ν(k2v.x, k2v.y)
@@ -261,8 +265,11 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
         k1v = pinfos2[k1i]
         k2v = pinfos2[k2i]
         k3v = pinfos2[k3i]
-        k4v = Fermi.hexagon_kadd2(k1v, k2v)
-        k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        #k4v = Fermi.hexagon_kadd2(k1v, k2v)
+        #k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        #k4i = Patch.find_patch_index_hexa(k4v, EqHexagon(Point2D(0., 0.), 4pi/3.0), npat)
+        k4i = Γ4.k4tab[2, 2, 2, 2, k1i, k2i, k3i]
+        k4v = pinfos2[k4i]
         #d这个带只需要第三个
         _, _, k1nu = get_kagome_ν(k1v.x, k1v.y)
         _, _, k2nu = get_kagome_ν(k2v.x, k2v.y)
@@ -294,11 +301,17 @@ function get_wuxx_U_mt(u1val, u2val, upval, pinfos1, pinfos2; usesymm=true)
         _, _, k22nu = get_kagome_ν(k2v2.x, k2v2.y)
         _, _, k32nu = get_kagome_ν(k3v2.x, k3v2.y)
         #两个k4和系数
-        k4v1 = Fermi.hexagon_kadd2(k1v1, k2v2)
-        k4v1 = Fermi.hexagon_kadd2(k4v1, -k3v2)
+        #k4v1 = Fermi.hexagon_kadd2(k1v1, k2v2)
+        #k4v1 = Fermi.hexagon_kadd2(k4v1, -k3v2)
+        #k4i1 = Patch.find_patch_index_hexa(k4v1, EqHexagon(Point2D(0., 0.), 4pi/3.0), npat)
+        k4i1 = Γ4.k4tab[1, 2, 2, 1, k1i, k2i, k3i]
+        k4v1 = pinfos1[k4i1]
         _, k41nu, _ = get_kagome_ν(k4v1.x, k4v1.y)
-        k4v2 = Fermi.hexagon_kadd2(k1v2, k2v1)
-        k4v2 = Fermi.hexagon_kadd2(k4v2, -k3v1)
+        #k4v2 = Fermi.hexagon_kadd2(k1v2, k2v1)
+        #k4v2 = Fermi.hexagon_kadd2(k4v2, -k3v1)
+        #k4i2 = Patch.find_patch_index_hexa(k4v2, EqHexagon(Point2D(0., 0.), 4pi/3.0), npat)
+        k4i2 = Γ4.k4tab[2, 1, 1, 2, k1i, k2i, k3i]
+        k4v2 = pinfos2[k4i2]
         _, _, k42nu = get_kagome_ν(k4v2.x, k4v2.y)
         #计算数值
         #对于同能带U来说，自旋的求和up，dn和dn，up重复两次，再除2，正好一倍

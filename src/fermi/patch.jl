@@ -126,7 +126,7 @@ function group_ltris_into_patches_mt(
         #lpats[idx] = find_algo(tri.center, brlu, pnum)
         tpat = find_algo(tri.center, brlu, pnum)
         if ismissing(tpat)
-            tpat = 1
+            tpat = 0
         end
         lpats[idx] = tpat
     end

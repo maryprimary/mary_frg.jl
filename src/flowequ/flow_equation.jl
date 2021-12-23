@@ -156,13 +156,18 @@ function TFGamma4(
         k4p = kadd(model, k1p, k2p)
         k4p = kadd(model, k4p, -k3p)
         #k4tab[m1, m2, m3, m4, k1, k2, k3] =
-        mpidx = find_algo(k4p, model.brillouin, patchnum)
-        #如果在原点，根据对称性选一个
-        if ismissing(mpidx)
-            mpidx = k1 + k2 - k3
-            mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
-            mpidx = mod(mpidx-1, patchnum) + 1
-        end
+        #mpidx = find_algo(k4p, model.brillouin, patchnum)
+        ##如果在原点，根据对称性选一个
+        #if ismissing(mpidx)
+        #    mpidx = k1 + k2 - k3
+        #    mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+        #    mpidx = mod(mpidx-1, patchnum) + 1
+        #end
+        #k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
+        #TODO: 更对称的方法确定k4 1. 角度自由度求和为0. 2. 半径自由度求和为0
+        mpidx = k1 + k2 - k3
+        mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+        mpidx = mod(mpidx-1, patchnum) + 1
         k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
     end
     #
@@ -178,7 +183,9 @@ function TFGamma4(
     end
     #
     for (tri, pat) in zip(ltris, lpats)
-        push!(ltris_pat[pat], tri)
+        if pat != 0
+            push!(ltris_pat[pat], tri)
+        end
     end
     #
     return Gamma4(
