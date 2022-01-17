@@ -50,6 +50,7 @@ struct Gamma4{T <: Fermi.Abstract2DModel, P <: Basics.AbstractTriangle}
     λ_0 :: Float64
     V :: Array{Float64, 7}
     k4tab :: Array{Int64, 7}
+    symmtab :: Array{Int64, 7}
     #patch允许不同能带取不同的位置，但是为了方便必须有一样的patch数目
     #对相同的布里渊区，patch切分的方法相同，所以相同的patchnum和ltris意味着相同的lpats
     patchnum :: Int64
@@ -106,6 +107,26 @@ function ECGamma4(
         end
         k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
     end
+    #找到能满足对称条件的
+    symmtab = Array{Int64, 7}(undef,
+    model.bandnum, model.bandnum, model.bandnum, model.bandnum,
+    patchnum, patchnum, patchnum
+    )
+    symmtab .= -1
+    for idxs in CartesianIndices(k4tab)
+        m1, m2, m3, m4, k1, k2, k3 = Tuple(idxs)
+        k4 = k4tab[m1, m2, m3, m4, k1, k2, k3]
+        if k4tab[m4, m3, m2, m1, k4, k3, k2] != k1
+            continue
+        end
+        if k4tab[m3, m4, m1, m2, k3, k4, k1] != k2
+            continue
+        end
+        if k4tab[m2, m1, m4, m3, k2, k1, k4] != k3
+            continue
+        end
+        symmtab[m1, m2, m3, m4, k1, k2, k3] = k4
+    end
     #
     split_algo = isa(model, QuadrateSystem) ? split_square :
     split_hexagon
@@ -117,6 +138,7 @@ function ECGamma4(
         λ_0,
         V,
         k4tab,
+        symmtab,
         patchnum,
         mpats,
         ltris, lpats, ladjs, nothing
@@ -156,19 +178,39 @@ function TFGamma4(
         k4p = kadd(model, k1p, k2p)
         k4p = kadd(model, k4p, -k3p)
         #k4tab[m1, m2, m3, m4, k1, k2, k3] =
-        #mpidx = find_algo(k4p, model.brillouin, patchnum)
+        mpidx = find_algo(k4p, model.brillouin, patchnum)
         ##如果在原点，根据对称性选一个
-        #if ismissing(mpidx)
-        #    mpidx = k1 + k2 - k3
-        #    mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
-        #    mpidx = mod(mpidx-1, patchnum) + 1
-        #end
-        #k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
-        #TODO: 更对称的方法确定k4 1. 角度自由度求和为0. 2. 半径自由度求和为0
-        mpidx = k1 + k2 - k3
-        mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
-        mpidx = mod(mpidx-1, patchnum) + 1
+        if ismissing(mpidx)
+            mpidx = k1 + k2 - k3
+            mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+            mpidx = mod(mpidx-1, patchnum) + 1
+        end
         k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
+        #TODO: 更对称的方法确定k4 1. 角度自由度求和为0. 2. 半径自由度求和为0
+        #mpidx = k1 + k2 - k3
+        #mpidx = mpidx < 1 ? mpidx + patchnum : mpidx
+        #mpidx = mod(mpidx-1, patchnum) + 1
+        #k4tab[m1, m2, m3, m4, k1, k2, k3] = mpidx
+    end
+    #找到能满足对称条件的
+    symmtab = Array{Int64, 7}(undef,
+    model.bandnum, model.bandnum, model.bandnum, model.bandnum,
+    patchnum, patchnum, patchnum
+    )
+    symmtab .= -1
+    for idxs in CartesianIndices(k4tab)
+        m1, m2, m3, m4, k1, k2, k3 = Tuple(idxs)
+        k4 = k4tab[m1, m2, m3, m4, k1, k2, k3]
+        if k4tab[m4, m3, m2, m1, k4, k3, k2] != k1
+            continue
+        end
+        if k4tab[m3, m4, m1, m2, k3, k4, k1] != k2
+            continue
+        end
+        if k4tab[m2, m1, m4, m3, k2, k1, k4] != k3
+            continue
+        end
+        symmtab[m1, m2, m3, m4, k1, k2, k3] = k4
     end
     #
     split_algo = isa(model, QuadrateSystem) ? split_square :
@@ -193,6 +235,7 @@ function TFGamma4(
         λ_0,
         V,
         k4tab,
+        symmtab,
         patchnum,
         mpats,
         ltris, lpats, nothing, ltris_pat
@@ -282,8 +325,8 @@ include("tf_bubble.jl")
 """
 温度流的导数
 """
-function dl_tf_mt(Γ4::Gamma4, bubb_pp::T1, bubb_fs::T2, bubb_ex::T3
-    ) where {T1<:Bubble, T2<:Bubble, T3<:Bubble}
+function dl_tf_mt(Γ4::Gamma4, bubb_pp::T1, bubb_fs::T2, bubb_ex::T3,
+    usesymm=true) where {T1<:Bubble, T2<:Bubble, T3<:Bubble}
     #
     sys = Γ4.model
     dl_val = zeros(size(Γ4.V))
@@ -319,7 +362,26 @@ function dl_tf_mt(Γ4::Gamma4, bubb_pp::T1, bubb_fs::T2, bubb_ex::T3
         #计算完成
         dl_val[b1, b2, b3, b4, i1, i2, i3] = value
     end# 结束对所有能带和动量的循环
-    return dl_val
+    if !usesymm
+        return dl_val
+    end
+    #将dl按照对称性进行平均
+    dl_val_symm = zeros(size(Γ4.V))
+    Threads.@threads for idxs in CartesianIndices(dl_val)
+        b1, b2, b3, b4, i1, i2, i3 = Tuple(idxs)
+        i4 = Γ4.symmtab[b1, b2, b3, b4, i1, i2, i3]
+        if i4 == -1
+            dl_val_symm[b1, b2, b3, b4, i1, i2, i3] = dl_val[b1, b2, b3, b4, i1, i2, i3]
+        else
+            dl_val_symm[b1, b2, b3, b4, i1, i2, i3] = 0.25 * (
+                dl_val[b1, b2, b3, b4, i1, i2, i3] +
+                dl_val[b4, b3, b2, b1, i4, i3, i2] +
+                dl_val[b2, b1, b4, b3, i2, i1, i4] +
+                dl_val[b3, b4, b1, b2, i3, i4, i1]
+            )
+        end
+    end
+    return dl_val_symm
 end
 
 
@@ -330,7 +392,8 @@ include("tf_bubble_ult.jl")
 温度流的导数, 将极低温的贡献和常态温度的混合
 """
 function dl_tf_mix_ult_mt(Γ4::Gamma4, bubb_pp_com::T1, bubb_fs_com::T2,
-    bubb_ex_com::T2, bubb_pp_ult::T1, bubb_fs_ult::T2, bubb_ex_ult::T2
+    bubb_ex_com::T2, bubb_pp_ult::T1, bubb_fs_ult::T2, bubb_ex_ult::T2;
+    usesymm=true
     ) where {T1<:Bubble, T2<:Bubble}
     #
     sys = Γ4.model
@@ -378,7 +441,26 @@ function dl_tf_mix_ult_mt(Γ4::Gamma4, bubb_pp_com::T1, bubb_fs_com::T2,
         #计算完成
         dl_val[b1, b2, b3, b4, i1, i2, i3] = value
     end# 结束对所有能带和动量的循环
-    return dl_val
+    if !usesymm
+        return dl_val
+    end
+    #将dl按照对称性进行平均
+    dl_val_symm = zeros(size(Γ4.V))
+    Threads.@threads for idxs in CartesianIndices(dl_val)
+        b1, b2, b3, b4, i1, i2, i3 = Tuple(idxs)
+        i4 = Γ4.symmtab[b1, b2, b3, b4, i1, i2, i3]
+        if i4 == -1
+            dl_val_symm[b1, b2, b3, b4, i1, i2, i3] = dl_val[b1, b2, b3, b4, i1, i2, i3]
+        else
+            dl_val_symm[b1, b2, b3, b4, i1, i2, i3] = 0.25 * (
+                dl_val[b1, b2, b3, b4, i1, i2, i3] +
+                dl_val[b4, b3, b2, b1, i4, i3, i2] +
+                dl_val[b2, b1, b4, b3, i2, i1, i4] +
+                dl_val[b3, b4, b1, b2, i3, i4, i1]
+            )
+        end
+    end
+    return dl_val_symm
 end
 
 
@@ -414,6 +496,7 @@ function fliter_away_surface(Γ4::Gamma4{T, P}, lval) where {T, P}
         Γ4.λ_0,
         Γ4.V,
         Γ4.k4tab,
+        Γ4.symmtab,
         Γ4.patchnum,
         Γ4.patches,
         resltris, reslpats, nothing, ltris_pat
@@ -485,6 +568,7 @@ function TFGamma4_refine_ltris_mt(Γ4::Gamma4{T, P}, lval; maxnum=2500000) where
         Γ4.λ_0,
         Γ4.V,
         Γ4.k4tab,
+        Γ4.symmtab,
         Γ4.patchnum,
         Γ4.patches,
         resltris, reslpats, nothing, ltris_pat
@@ -572,6 +656,7 @@ function TFGamma4_reweight_ltris_mt(Γ4::Gamma4{T, P}, lval
         Γ4.λ_0,
         Γ4.V,
         Γ4.k4tab,
+        Γ4.symmtab,
         Γ4.patchnum,
         Γ4.patches,
         refltris, reflpats, nothing, ltris_pat
@@ -632,6 +717,7 @@ function refine_to_surface(Γ4::Gamma4{T, P}) where {T, P}
         Γ4.λ_0,
         Γ4.V,
         Γ4.k4tab,
+        Γ4.symmtab,
         Γ4.patchnum,
         Γ4.patches,
         refltris, reflpats, nothing, ltris_pat
@@ -737,6 +823,7 @@ function TFGamma4_addition_ltris_mt(Γ4::Gamma4{T, P}, blval
         Γ4.λ_0,
         Γ4.V,
         Γ4.k4tab,
+        Γ4.symmtab,
         Γ4.patchnum,
         Γ4.patches,
         refltris, reflpats, nothing, ltris_pat

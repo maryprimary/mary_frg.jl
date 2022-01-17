@@ -100,6 +100,25 @@ function rotation_check2(V, model, pats1, pats2)
 end
 
 
+"""
+验证反转指标的对称性
+"""
+function reflection_check(V, k4tab)
+    for idxs in CartesianIndices(k4tab)
+        k1i, k2i, k3i = Tuple(idxs)
+        k4i = k4tab[k1i, k2i, k3i]
+        if !isapprox(V[k1i, k2i, k3i], V[k4i, k3i, k2i])
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not full inverse")
+        end
+        if !isapprox(V[k1i, k2i, k3i], V[k2i, k1i, k4i])
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not anti inverse")
+            println(k1i, " ", k2i, " ", k3i, " ", V[k1i, k2i, k3i], 
+            " ", k2i, " ", k1i, " ", k4i, " ", V[k2i, k1i, k4i])
+        end
+    end
+    println("reflection_check finish")
+end
+
 
 """
 验证k4tab的对称性
@@ -109,14 +128,21 @@ function reflection_check2(k4tab)
     for idxs in CartesianIndices(k4tab)
         k1i, k2i, k3i = Tuple(idxs)
         k4i = k4tab[k1i, k2i, k3i]
+        if k4i == -1
+            #println(k1i, " ", k2i, " ", k3i, " ", k4i)
+            continue
+        #else
+        #    println(k1i, " ", k2i, " ", k3i, " ", k4i)
+        end
+        #println(k1i, " ", k2i, " ", k3i, " ", k4i)
         k1i2 = k4tab[k4i, k3i, k2i]
         if k1i2 != k1i
-            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not full inverse")
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not full inverse ", k4i, " ", k3i, " ", k2i, " ", k1i2)
         end
         k3i2 = k4tab[k2i, k1i, k4i]
         if k3i2 != k3i
-            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not anti inverse")
+            println(k1i, " ", k2i, " ", k3i, " ", k4i, " not anti inverse ", k2i, " ", k1i, " ", k4i, " ", k3i2)
         end
     end
-    println("reflection_check finish")
+    println("reflection_check2 finish")
 end

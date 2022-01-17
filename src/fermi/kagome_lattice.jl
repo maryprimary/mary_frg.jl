@@ -194,7 +194,8 @@ end
 """
 获取相互作用在能带下的表示
 """
-function get_kagome_U_mt(uval, pinfos)
+function get_kagome_U_mt(Γ4, uval)
+    pinfos = Γ4.patches[1]
     npat = length(pinfos)
     ret = zeros(npat, npat, npat)
     @Threads.threads for idxs in CartesianIndices(ret)
@@ -202,8 +203,10 @@ function get_kagome_U_mt(uval, pinfos)
         k1v = pinfos[k1i]
         k2v = pinfos[k2i]
         k3v = pinfos[k3i]
-        k4v = Fermi.hexagon_kadd2(k1v, k2v)
-        k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        #k4v = Fermi.hexagon_kadd2(k1v, k2v)
+        #k4v = Fermi.hexagon_kadd2(k4v, -k3v)
+        k4i = Γ4.k4tab[1, 1, 1, 1, k1i, k2i, k3i]
+        k4v = pinfos[k4i]
         #p这个带只需要第二个
         _, k1nu, _ = get_kagome_ν(k1v.x, k1v.y)
         _, k2nu, _ = get_kagome_ν(k2v.x, k2v.y)
@@ -323,31 +326,50 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
             k21nu[sidx] * k31nu[sidx] * k42nu[sidx]
         end
     end
-    if usesymm
-        symm_holder = Array{Int8, 3}(undef, 5, npat, npat)
-        @Threads.threads for idxs in CartesianIndices(symm_holder)
-            sec, k2i, k3i = Tuple(idxs)
-            offset = sec*symmsector
-            nk2i = k2i - offset
-            nk2i = nk2i < 1 ? nk2i + npat : nk2i
-            nk3i = k3i - offset
-            nk3i = nk3i < 1 ? nk3i + npat : nk3i
-            #
-            ret[1, 1, 1, 1, 1+offset:symmsector+offset, k2i, k3i] =
-            ret[1, 1, 1, 1, 1:symmsector, nk2i, nk3i]
-            #
-            ret[2, 2, 2, 2, 1+offset:symmsector+offset, k2i, k3i] =
-            ret[2, 2, 2, 2, 1:symmsector, nk2i, nk3i]
-            #
-            ret[1, 2, 2, 1, 1+offset:symmsector+offset, k2i, k3i] =
-            ret[1, 2, 2, 1, 1:symmsector, nk2i, nk3i]
-            #
-            ret[2, 1, 1, 2, 1+offset:symmsector+offset, k2i, k3i] =
-            ret[2, 1, 1, 2, 1:symmsector, nk2i, nk3i]
-            #
+    #不利用对称性则直接返回
+    if !usesymm
+        return ret
+    end
+    #利用对称性
+    symm_holder = Array{Int8, 3}(undef, 5, npat, npat)
+    @Threads.threads for idxs in CartesianIndices(symm_holder)
+        sec, k2i, k3i = Tuple(idxs)
+        offset = sec*symmsector
+        nk2i = k2i - offset
+        nk2i = nk2i < 1 ? nk2i + npat : nk2i
+        nk3i = k3i - offset
+        nk3i = nk3i < 1 ? nk3i + npat : nk3i
+        #
+        ret[1, 1, 1, 1, 1+offset:symmsector+offset, k2i, k3i] =
+        ret[1, 1, 1, 1, 1:symmsector, nk2i, nk3i]
+        #
+        ret[2, 2, 2, 2, 1+offset:symmsector+offset, k2i, k3i] =
+        ret[2, 2, 2, 2, 1:symmsector, nk2i, nk3i]
+        #
+        ret[1, 2, 2, 1, 1+offset:symmsector+offset, k2i, k3i] =
+        ret[1, 2, 2, 1, 1:symmsector, nk2i, nk3i]
+        #
+        ret[2, 1, 1, 2, 1+offset:symmsector+offset, k2i, k3i] =
+        ret[2, 1, 1, 2, 1:symmsector, nk2i, nk3i]
+        #
+    end
+    retnew = zeros(2, 2, 2, 2, npat, npat, npat)
+    #反转对称性
+    @Threads.threads for idxs in CartesianIndices(retnew)
+        b1, b2, b3, b4, i1, i2, i3 = Tuple(idxs)
+        i4 = Γ4.symmtab[b1, b2, b3, b4, i1, i2, i3]
+        if i4 == -1
+            retnew[b1, b2, b3, b4, i1, i2, i3] = ret[b1, b2, b3, b4, i1, i2, i3]
+        else
+            retnew[b1, b2, b3, b4, i1, i2, i3] =  0.25 * (
+                ret[b1, b2, b3, b4, i1, i2, i3] +
+                ret[b4, b3, b2, b1, i4, i3, i2] +
+                ret[b2, b1, b4, b3, i2, i1, i4] +
+                ret[b3, b4, b1, b2, i3, i4, i1]
+            )
         end
     end
-    return ret
+    return retnew
 end
 
 
