@@ -5,7 +5,6 @@
 
 using Plots
 using MARY_fRG.Fermi
-using MARY_fRG.Fermi.Kagome
 using MARY_fRG.Fermi.Patch
 using MARY_fRG.Fermi.Surface
 using MARY_fRG.FlowEquation
@@ -25,13 +24,14 @@ function draw_surface()
     draw_points!(plt, Γ4.patches[2])
     #
     suf1, cidx1 = const_energy_line_in_patches(
-        Γ4.ltris, Γ4.ladjs, Γ4.lpats, 0., Γ4.model.dispersion[1]
+        Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, 0., 1
     )
     draw_lines!(plt, suf1; lcidx=cidx1)
     suf2, cidx2 = const_energy_line_in_patches(
-        Γ4.ltris, Γ4.ladjs, Γ4.lpats, 0., Γ4.model.dispersion[2]
+        Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, 0., 2
     )
     draw_lines!(plt, suf2; lcidx=cidx2)
+    draw_polygon!(plt, Γ4.ltris, pcidx=Γ4.lpats)
     @savepng plt "av3sb5_suface"
 end
 

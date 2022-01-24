@@ -11,21 +11,20 @@ abstract type Abstract2DModel{T} end
 using ..Basics
 
 export QuadrateSystem, TriangularSystem
+export kadd, dispersion
 
 """
 正方晶系
 """
 struct QuadrateSystem{T} <: Abstract2DModel{T}
     brillouin :: Basics.AbstractRectangle{:AXISSQUARE}
-    dispersion :: Vector{Function}
     bandnum :: Int64
-    kadd :: Function
-    QuadrateSystem{T}(disps) where T = begin
+    μs :: Vector{Float64}
+    QuadrateSystem{T}(μs) where T = begin
         new{T}(
             Square(Point2D(0., 0.), 2pi),
-            disps,
-            length(disps),
-            square_kadd
+            length(μs),
+            μs
         )
     end
 end
@@ -55,15 +54,13 @@ b1=π(-2, 2/√3); b2=π(2, 2/√3);
 """
 struct TriangularSystem{T} <: Abstract2DModel{T}
     brillouin :: Basics.AbstractHexagon{:EQ}
-    dispersion :: Vector{Function}
     bandnum :: Int64
-    kadd :: Function
-    TriangularSystem{T}(disps) where T = begin
+    μs :: Vector{Float64}
+    TriangularSystem{T}(μs) where T = begin
         new{T}(
             EqHexagon(Point2D(0., 0.), 4pi/3.0),
-            disps,
-            length(disps),
-            hexagon_kadd2
+            length(μs),
+            μs
         )
     end
 end
@@ -146,6 +143,21 @@ end
 
 
 
+"""
+动量相加
+"""
+function kadd(::QuadrateSystem{T}, pt1::Point2D, pt2::Point2D) where T
+    return square_kadd(pt1, pt2)
+end
+
+"""
+使用多重派发
+"""
+function kadd(::TriangularSystem{T}, pt1::Point2D, pt2::Point2D) where T
+    return hexagon_kadd2(pt1, pt2)
+end
+
+
 ##"""不比kadd2要快
 ##三角晶系的动量平移
 ##b1=π(-2, 2/√3); b2=π(2, 2/√3);
@@ -185,25 +197,38 @@ end
 ##end
 
 
+"""
+色散关系，每个模型里面需要重新派发这个函数
+"""
+function dispersion(model::Abstract2DModel{T}, bidx::Int64, kx, ky) where T
+    throw(error("not impletment dispersion "*string(typeof(model))))
+end
+
+#function dispersion(::QuadrateSystem{T}, bidx::Int64, pt1::Point2D, pt2::Point2D
+#    ) where T
+#    println("Quad ", T)
+#end
+
+
 #
 #一些内建的模型
 #不能在include上面加"""document"""
-
-include("quadrate_lattice.jl")
-export common_square_lattice
-
-
-include("triangular_lattice.jl")
-export common_triangle_lattice
-
-
-include("kagome_lattice.jl")
 
 
 include("surface.jl")
 
 
 include("patch.jl")
+
+
+include("quadrate_lattice.jl")
+
+
+include("triangular_lattice.jl")
+
+
+include("kagome_lattice.jl")
+
 
 end
 

@@ -2,11 +2,13 @@
 温度流的Bubble积分
 """
 
+using ..Fermi
+
 """
 获取所有的Bubble(pp, fs, nfs, ex, nex)
 qpp = k1+k2; qfs = k3-k2; qex = k1-k3
 """
-function all_bubble_ec_mt(Γ4::Gamma4, lval)
+function all_bubble_ec_mt(Γ4::Gamma4, lval; usesymm=true)
     #
     lamb = Γ4.λ_0 * exp(-lval)
     brlu_area = area(Γ4.model.brillouin)
@@ -22,7 +24,7 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
     #
     for bidx in 1:1:Γ4.model.bandnum
         posi, peidx = const_energy_line_in_patches(
-            Γ4.ltris, Γ4.ladjs, Γ4.lpats, lamb, Γ4.model.dispersion[bidx]
+            Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, lamb, bidx
         )
         #将正能量的线加到对应的位置上
         for (edg, pidx) in zip(posi, peidx)
@@ -30,12 +32,26 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         end
         #
         nega, neidx = const_energy_line_in_patches(
-            Γ4.ltris, Γ4.ladjs, Γ4.lpats, -lamb, Γ4.model.dispersion[bidx]
+            Γ4.model, Γ4.ltris, Γ4.ladjs, Γ4.lpats, -lamb, bidx
         )
         #将负能量的线加到对应的位置上
         for (edg, pidx) in zip(nega, neidx)
             push!(negamat[bidx, pidx], edg)
         end
+    end
+    place_holder = Array{Int8, 7}(
+        undef,
+        Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum,
+        Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
+    )
+    if usesymm
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        place_holder = Array{Int8, 7}(
+            undef,
+            Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum, Γ4.model.bandnum,
+            symmsector, Γ4.patchnum, Γ4.patchnum
+        )
     end
     #计算pp散射的bubble
     bubbval = Array{Float64, 7}(
@@ -45,16 +61,35 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k1(b1), k2(b2)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b1, b2, i_n, i1, i2 = Tuple(idxs)
         k1, k2 = Γ4.patches[b1][i1], Γ4.patches[b2][i2]
-        qpp = Γ4.model.kadd(k1, k2)
+        qpp = kadd(Γ4.model, k1, k2)
         bubbres = pi_αβ_minus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qpp, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qpp, beta
         )
         bubbval[alpha, beta, b1, b2, i_n, i1, i2] = bubbres
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k1i, k2i = Tuple(idxs)
+            offset = sec*symmsector
+            nk1i = k1i - offset
+            nk1i = nk1i < 1 ? nk1i + Γ4.patchnum : nk1i
+            nk2i = k2i - offset
+            nk2i = nk2i < 1 ? nk2i + Γ4.patchnum : nk2i
+            bubbval[:, :, :, :, 1+offset:symmsector+offset, k1i, k2i] =
+            bubbval[:, :, :, :, 1:symmsector, nk1i, nk2i]
+        end
     end
     bubb_qpp = Bubble{:ec, :minus}(lval, bubbval)
     #计算fs和-fs
@@ -72,23 +107,43 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k2(b2), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval_fs)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b2, b3, i_n, i2, i3 = Tuple(idxs)
         k2, k3 = Γ4.patches[b2][i2], Γ4.patches[b3][i3]
-        qfs = Γ4.model.kadd(k3, -k2)
+        qfs = kadd(Γ4.model, k3, -k2)
         nqfs = -qfs
         bubbres_fs = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qfs, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qfs, beta
         )
         bubbres_nfs = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            nqfs, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, nqfs, beta
         )
         bubbval_fs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_fs
         bubbval_nfs[alpha, beta, b2, b3, i_n, i2, i3] = bubbres_nfs
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k2i, k3i = Tuple(idxs)
+            offset = sec*symmsector
+            nk2i = k2i - offset
+            nk2i = nk2i < 1 ? nk2i + Γ4.patchnum : nk2i
+            nk3i = k3i - offset
+            nk3i = nk3i < 1 ? nk3i + Γ4.patchnum : nk3i
+            bubbval_fs[:, :, :, :, 1+offset:symmsector+offset, k2i, k3i] =
+            bubbval_fs[:, :, :, :, 1:symmsector, nk2i, nk3i]
+            bubbval_nfs[:, :, :, :, 1+offset:symmsector+offset, k2i, k3i] =
+            bubbval_nfs[:, :, :, :, 1:symmsector, nk2i, nk3i]
+        end
     end
     bubb_qfs = Bubble{:ec, :plus}(lval, bubbval_fs)
     bubb_nqfs = Bubble{:ec, :plus}(lval, bubbval_nfs)
@@ -107,23 +162,43 @@ function all_bubble_ec_mt(Γ4::Gamma4, lval)
         #nidx(alpha), k1(b1), k3(b3)
         Γ4.patchnum, Γ4.patchnum, Γ4.patchnum
     )
-    Threads.@threads for idxs in CartesianIndices(bubbval_ex)
+    Threads.@threads for idxs in CartesianIndices(place_holder)
         alpha, beta, b1, b3, i_n, i1, i3 = Tuple(idxs)
         k1, k3 = Γ4.patches[b1][i1], Γ4.patches[b3][i3]
-        qex = Γ4.model.kadd(k1, -k3)
+        qex = kadd(Γ4.model, k1, -k3)
         nqex = -qex
         bubbres_ex = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            qex, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, qex, beta
         )
         bubbres_nex = pi_αβ_plus_ec(
-            posimat[alpha, i_n], negamat[alpha, i_n],
-            brlu_area, lamb,
-            nqex, Γ4.model.dispersion[beta]
+            Γ4.model, posimat[alpha, i_n], negamat[alpha, i_n],
+            brlu_area, lamb, nqex, beta
         )
         bubbval_ex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_ex
         bubbval_nex[alpha, beta, b1, b3, i_n, i1, i3] = bubbres_nex
+    end
+    if usesymm
+        #每个里面有多少
+        symmsector = isa(Γ4.model, TriangularSystem) ?
+        Int64(Γ4.patchnum // 6) : Int64(Γ4.patchnum // 4)
+        #一共有几个
+        symm_holder = isa(Γ4.model, TriangularSystem) ?
+        Array{Int8, 3}(undef, 5, Γ4.patchnum, Γ4.patchnum) :
+        Array{Int8, 3}(undef, 3, Γ4.patchnum, Γ4.patchnum)
+        #前面四个能带指标要完全相同才可以
+        @Threads.threads for idxs in CartesianIndices(symm_holder)
+            sec, k1i, k3i = Tuple(idxs)
+            offset = sec*symmsector
+            nk1i = k1i - offset
+            nk1i = nk1i < 1 ? nk1i + Γ4.patchnum : nk1i
+            nk3i = k3i - offset
+            nk3i = nk3i < 1 ? nk3i + Γ4.patchnum : nk3i
+            bubbval_ex[:, :, :, :, 1+offset:symmsector+offset, k1i, k3i] =
+            bubbval_ex[:, :, :, :, 1:symmsector, nk1i, nk3i]
+            bubbval_nex[:, :, :, :, 1+offset:symmsector+offset, k1i, k3i] =
+            bubbval_nex[:, :, :, :, 1:symmsector, nk1i, nk3i]
+        end
     end
     bubb_qex = Bubble{:ec, :plus}(lval, bubbval_ex)
     bubb_nqex = Bubble{:ec, :plus}(lval, bubbval_nex)
@@ -142,11 +217,12 @@ area是第一布里渊区的面积\n
 ```k-q到第一布里渊区的映射就处理好了Umklapp```
 """
 function pi_αβ_plus_ec(
+    model::P, 
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function
-)
+    didx::Int64
+) where P <: Fermi.Abstract2DModel
     """
     10.112中的 PI^+(n, q) = +LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(k - Q)
     其中有一个beta是频率积分带来的，2pi^2是动量积分带来的
@@ -181,7 +257,7 @@ function pi_αβ_plus_ec(
         kprim = kval + nega_q
         #kprim = kadd(kval, nega_q)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if -disp_kprim < lamb
             continue
         end
@@ -195,7 +271,7 @@ function pi_αβ_plus_ec(
         kprim = kval + nega_q
         #kprim = kadd(kval, nega_q)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if disp_kprim < lamb
             continue
         end
@@ -219,11 +295,12 @@ area是第一布里渊区的面积\n
 因为算能量的时候，超出第一布里渊区也没有关系，所以不再需要kadd
 """
 function pi_αβ_minus_ec(
+    model::P,
     posi::Vector{Basics.Segment}, nega::Vector{Basics.Segment},
     area::Float64, lamb::Float64, 
     qval::Point2D, 
-    disp::Function
-)
+    didx::Int64
+) where P <: Fermi.Abstract2DModel
     """
     10.112中的 PI^-(n, q) = -LAMBDA (2pi)^-2 beta^-1 Int_{k in k_n} G'(k)G(- k + Q)
     = -LAMBDA (2pi)^-2 Int_{k in k_n} CITA() -DELTA()
@@ -247,7 +324,7 @@ function pi_αβ_minus_ec(
         kprim = qval - kval
         #kprim = kadd(-kval, qval)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if disp_kprim < lamb
             continue
         end
@@ -261,7 +338,7 @@ function pi_αβ_minus_ec(
         kprim = qval - kval
         #kprim = kadd(-kval, qval)
         #CITA
-        disp_kprim = disp(kprim.x, kprim.y)
+        disp_kprim = dispersion(model, didx, kprim.x, kprim.y)
         if -disp_kprim < lamb
             continue
         end

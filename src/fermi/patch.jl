@@ -17,6 +17,9 @@ export get_k4_table
 在六角型的区域里找到属于哪个patch
 """
 function find_patch_index_hexa(pt::Point2D, hexa::Basics.AbstractHexagon{:EQ}, pnum::Int64)
+    if abs(pt.x) < 1e-8 && abs(pt.y) < 1e-8
+        return missing
+    end
     #把六边型分成六瓣
     pre_pnum = Int64(pnum // 6)
     #找到属于哪个以后，先转到水平的左侧那个上面
@@ -69,6 +72,9 @@ end
 """
 function find_patch_index_squa(pt::Point2D,
     squa::Basics.AbstractRectangle{:AXISSQUARE}, pnum::Int64)
+    if abs(pt.x) < 1e-8 && abs(pt.y) < 1e-8
+        return missing
+    end
     #把正方形分成4份
     pre_pnum = Int64(pnum // 4)
     #先转到左上角的那个里面
@@ -117,7 +123,12 @@ function group_ltris_into_patches_mt(
     lpats = Vector{Int64}(undef, length(ltris))
     Threads.@threads for idx in 1:1:length(ltris) # (idx, tri) in enumerate(ltris)
         tri = ltris[idx]
-        lpats[idx] = find_algo(tri.center, brlu, pnum)
+        #lpats[idx] = find_algo(tri.center, brlu, pnum)
+        tpat = find_algo(tri.center, brlu, pnum)
+        if ismissing(tpat)
+            tpat = 0
+        end
+        lpats[idx] = tpat
     end
     return lpats
 end
@@ -126,11 +137,11 @@ end
 """
 二分法求0点
 """
-function bisect_fermi_suface(angle, disp, rad1, rad2)
+function bisect_fermi_suface(angle, model, bandidx, rad1, rad2)
     cosa = cos(angle)
     sina = sin(angle)
-    lv = disp(rad1 * cosa, rad1 * sina)
-    rv = disp(rad2 * cosa, rad2 * sina)
+    lv = dispersion(model, bandidx, rad1 * cosa, rad1 * sina)
+    rv = dispersion(model, bandidx, rad2 * cosa, rad2 * sina)
     @assert lv * rv <= 0
     if lv < 0
         left, right = rad1, rad2
@@ -138,7 +149,7 @@ function bisect_fermi_suface(angle, disp, rad1, rad2)
         left, right = rad2, rad1
     end
     middle = (left + right) / 2
-    mv = disp(middle * cos(angle), middle * sin(angle))
+    mv = dispersion(model, bandidx, middle * cos(angle), middle * sin(angle))
     count = 0
     while !isapprox(mv, 0., atol=1e-12)
         if mv < 0
@@ -147,7 +158,7 @@ function bisect_fermi_suface(angle, disp, rad1, rad2)
             right = middle
         end
         middle = (left + right) / 2
-        mv = disp(middle * cosa, middle * sina)
+        mv = dispersion(model, bandidx, middle * cosa, middle * sina)
         count += 1
         if count > 50
             throw(error("can not find root"))
@@ -162,15 +173,16 @@ end
 需要自己确认费米面在von Hove fill 以下
 """
 function patches_under_vonhove(
-    ::T, disp, pnum
-    ) where T <: Union{Basics.AbstractRectangle{:AXISSQUARE}, Basics.AbstractHexagon{:EQ}}
+    model::T, bandidx, pnum
+    ) where T <: Fermi.Abstract2DModel
     dang = 2pi / pnum
-    radius = T == Basics.AbstractHexagon{:EQ} ? 2pi*sqrt(3)/3 : pi
-    sang = T == Basics.AbstractHexagon{:EQ} ? -pi / 6 : 0
+    radius = isa(model.brillouin, Basics.AbstractHexagon{:EQ}) ? 2pi*sqrt(3)/3 : pi
+    sang = isa(model.brillouin, Basics.AbstractHexagon{:EQ}) ? -pi / 6 : 0
     patches = Vector{Point2D}(undef, pnum)
     for idx = 1:1:pnum
-        ang = (idx - 0.5) * dang + sang
-        root = bisect_fermi_suface(ang, disp, 0., radius)
+        #稍微偏离一些防止正好卡在patch边界的k4
+        ang = (idx - π/6) * dang + sang
+        root = bisect_fermi_suface(ang, model, bandidx, 0., radius)
         patches[idx] = Point2D(root*cos(ang), root*sin(ang))
     end
     return patches
