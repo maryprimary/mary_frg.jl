@@ -45,6 +45,9 @@ function find_patch_index_hexa(pt::Point2D, hexa::Basics.AbstractHexagon{:EQ}, p
         #为了和内侧有相同的角度，这里水平伸长三倍，然后放到另一侧计算角度
         spt = rpt - hexa.vertex[4]
         spt = Point2D(-3spt.x, -spt.y)
+        if abs(spt.x) < 1e-8 && abs(spt.y) < 1e-8
+            spt = Point2D(-0.1, 0.)
+        end
         relang = (7pi / 6) - absolute_angle(spt)
         relidx = relang * pre_pnum / (pi/3)
         #由于精度原因，relang有可能小于0的极小数，floor就变成-1了
@@ -58,6 +61,7 @@ function find_patch_index_hexa(pt::Point2D, hexa::Basics.AbstractHexagon{:EQ}, p
         #    println(partidx)
         #end
     end
+    #println(relidx)
     #由于一个patch边界上的可能会判断为下一个patch（floor以后刚好是pre_pnum)
     #所以是有可能大于pnum数量的
     #0的话代表relidx是-1,是上一个patch，转回去就是最后一个

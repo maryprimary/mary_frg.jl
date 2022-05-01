@@ -12,7 +12,7 @@
 获取所有的Bubble(pp, fs, ex)
 qpp = k1+k2; qfs = k3-k2; qex = k1-k3
 """
-function all_bubble_tf_ult_mt(Γ4::Gamma4{T, P}, cert::Float64; usesymm=true) where {T, P}
+function all_bubble_tf_ult_mt(Γ4::Gamma4{T, P, K}, cert::Float64; usesymm=true) where {T, P, K}
     #
     brlu_area = area(Γ4.model.brillouin)
     #因为现在所有的能带都必须有同一个lpats，所以只要每一个patch中有哪些tri

@@ -99,11 +99,14 @@ end
 
 """
 获取nu变换的矩阵
+子格子位置是
+ B
+A C
 """
 function get_kagome_ν(kx, ky)
     if kx == 0. && ky == 0.
-        kx = 1e-10
-        ky = -1e-10
+        kx = 1e-8
+        ky = -1e-8
     end
     #x::BigFloat = BigFloat(kx) / BigFloat(4)
     #y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)

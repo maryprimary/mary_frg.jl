@@ -17,11 +17,11 @@ ENV["GKSwstype"] = "100"
 """
 function run_ec()
     model = common_square_lattice(0.20)
-    Γ4 = ECGamma4(
+    Γ4 = ECGamma4CMPLX(
         model, 1.0, 16, 200
     )
     rotation_check2(Γ4.k4tab[1, 1, 1, 1, :, :, :], model, Γ4.patches[1], Γ4.patches[1])
-    Γ4.V .+= 1.0
+    Γ4.V .+= 1.0 + 0.1im
     lval = 0.
     lstep = 0.01
     for idx in 1:1:701
@@ -36,8 +36,10 @@ function run_ec()
         dl = dl_ec_mt(Γ4, bubb_pp, bubb_fs, bubb_nfs, bubb_ex, bubb_nex)
         Γ4.V .+= dl .* lstep
         if idx % 50 == 1
-            plt = heatmap(Γ4.V[1, 1, 1, 1, :, :, 1])
+            plt = heatmap(real(Γ4.V[1, 1, 1, 1, :, :, 1]))
             png(plt, "Gamma4"*string(idx))
+            plt = heatmap(imag(Γ4.V[1, 1, 1, 1, :, :, 1]))
+            png(plt, "iGamma4"*string(idx))
         end
         lval += lstep
     end
@@ -49,11 +51,11 @@ end
 
 function run_tf()
     model = common_square_lattice(0.00)
-    Γ4 = TFGamma4(
+    Γ4 = TFGamma4CMPLX(
         model, 1.0, 16, 100
     )
     rotation_check2(Γ4.k4tab[1, 1, 1, 1, :, :, :], model, Γ4.patches[1], Γ4.patches[1])
-    Γ4.V .+= 1.0
+    Γ4.V .+= 1.0 + 0.1im
     lval = 0.
     lstep = 0.01
     for idx in 1:1:701
@@ -68,8 +70,10 @@ function run_tf()
         dl = dl_tf_mt(Γ4, bubb_pp, bubb_fs, bubb_ex)
         Γ4.V .+= dl .* lstep
         if idx % 50 == 1
-            plt = heatmap(Γ4.V[1, 1, 1, 1, :, :, 1])
+            plt = heatmap(real(Γ4.V[1, 1, 1, 1, :, :, 1]))
             png(plt, "Gamma4"*string(idx))
+            plt = heatmap(imag(Γ4.V[1, 1, 1, 1, :, :, 1]))
+            png(plt, "iGamma4"*string(idx))
         end
         lval += lstep
     end
