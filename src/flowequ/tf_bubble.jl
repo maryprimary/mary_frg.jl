@@ -8,7 +8,7 @@
 获取所有的Bubble(pp, fs, ex)
 qpp = k1+k2; qfs = k3-k2; qex = k1-k3
 """
-function all_bubble_tf_mt(Γ4::Gamma4{T, P}, lval; usesymm=true) where {T, P}
+function all_bubble_tf_mt(Γ4::Gamma4{T, P, K}, lval; usesymm=true) where {T, P, K}
     #
     lamb = Γ4.λ_0 * exp(-lval)
     brlu_area = area(Γ4.model.brillouin)

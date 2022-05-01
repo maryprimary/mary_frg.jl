@@ -30,10 +30,10 @@ end
 
 function run_rftf()
     model = common_square_lattice(0.20)
-    Γ4 = TFGamma4(
+    Γ4 = TFGamma4CMPLX(
         model, 8.0, 16, 200
     )
-    Γ4.V .+= 1.0
+    Γ4.V .+= 1.0 + 0.1im
     lval = 0.
     lstep = 0.01
     #plt = draw_points([tri.center for tri in Γ4.ltris])
@@ -63,8 +63,10 @@ function run_rftf()
         dl = dl_tf_mix_ult_mt(Γ4, bubb_pp, bubb_fs, bubb_ex, bpu, bfu, beu)
         Γ4.V .+= dl .* lstep
         if idx % 50 == 1 || idx > 3301
-            plt = heatmap(Γ4.V[1, 1, 1, 1, :, :, 1])
+            plt = heatmap(real(Γ4.V[1, 1, 1, 1, :, :, 1]))
             png(plt, "Gamma4"*string(idx))
+            plt = heatmap(imag(Γ4.V[1, 1, 1, 1, :, :, 1]))
+            png(plt, "iGamma4"*string(idx))
         end
         lval += lstep
     end
