@@ -104,10 +104,10 @@ end
 A C
 """
 function get_kagome_ν(kx, ky)
-    if kx == 0. && ky == 0.
-        kx = 1e-8
-        ky = -1e-8
-    end
+    #if kx == 0. && ky == 0.
+    #    kx = 0.1
+    #    ky = 0.1
+    #end
     #x::BigFloat = BigFloat(kx) / BigFloat(4)
     #y::BigFloat = sqrt(BigFloat(3)) * BigFloat(ky) / BigFloat(4)
     #mat = zeros(3, 3)
@@ -117,28 +117,30 @@ function get_kagome_ν(kx, ky)
     #mat[2, 1] = 2cos(x+y)
     #mat[3, 1] = 2cos(2x)
     #mat[3, 2] = 2cos(-x+y)
-    mat = zeros(3, 3)
-    mat[1, 2] = 2cos(kx/4+√3*ky/4)#1 + exp(-im*(kx/2+√3*ky/2))
-    mat[1, 3] = 2cos(kx/2)#1 + exp(-im*(kx))
-    mat[2, 3] = 2cos(kx/4-√3*ky/4)#1 + exp(-im*(kx/2 - √3*ky/2))
-    mat[2, 1] = 2cos(kx/4+√3*ky/4)#1 + exp(im*(kx/2+√3*ky/2))
-    mat[3, 1] = 2cos(kx/2)#1 + exp(im*(kx))
-    mat[3, 2] = 2cos(kx/4-√3*ky/4)#1 + exp(im*(kx/2 - √3*ky/2))
+    #这里必须考虑元胞位置，不然的话，布里渊区没有办法保证周期性
+    #所以只能包含复数进来
+    mat = zeros(ComplexF64, 3, 3)
+    mat[1, 2] = 1 + exp(-im*(kx/2 + √3*ky/2))
+    mat[1, 3] = 1 + exp(-im*(kx))
+    mat[2, 3] = 1 + exp(-im*(kx/2 - √3*ky/2))
+    mat[2, 1] = 1 + exp(im*(kx/2 + √3*ky/2))
+    mat[3, 1] = 1 + exp(im*(kx))
+    mat[3, 2] = 1 + exp(im*(kx/2 - √3*ky/2))
     evals, evecs = eigen(mat)
     #println(transpose(evecs)*mat*evecs)
     #println(evals)
     nu1 = evecs[:, 1]
-    if abs(minimum(nu1)) > maximum(nu1) + eps()
-        nu1 = -nu1
-    end
+    #if abs(minimum(nu1)) > maximum(nu1) + eps()
+    #    nu1 = -nu1
+    #end
     nu2 = evecs[:, 2]
-    if abs(minimum(nu2)) > maximum(nu2) + eps()
-        nu2 = -nu2
-    end
+    #if abs(minimum(nu2)) > maximum(nu2) + eps()
+    #    nu2 = -nu2
+    #end
     nu3 = evecs[:, 3]
-    if abs(minimum(nu3)) > maximum(nu3) + eps()
-        nu3 = -nu3
-    end
+    #if abs(minimum(nu3)) > maximum(nu3) + eps()
+    #    nu3 = -nu3
+    #end
     return nu1, nu2, nu3
     #sqr::BigFloat = 2 * cos(2*x - 2*y)
     #sqr::BigFloat += 2 * cos(2*x + 2*y)
@@ -200,7 +202,7 @@ end
 function get_kagome_U_mt(Γ4, uval)
     pinfos = Γ4.patches[1]
     npat = length(pinfos)
-    ret = zeros(npat, npat, npat)
+    ret = zeros(ComplexF64, npat, npat, npat)
     @Threads.threads for idxs in CartesianIndices(ret)
         k1i, k2i, k3i = Tuple(idxs)
         k1v = pinfos[k1i]
@@ -217,8 +219,8 @@ function get_kagome_U_mt(Γ4, uval)
         _, k4nu, _ = get_kagome_ν(k4v.x, k4v.y)
         #计算数值
         for sidx in 1:1:3
-            ret[k1i, k2i, k3i] += uval * k1nu[sidx] *
-            k2nu[sidx] * k3nu[sidx] * k4nu[sidx]
+            ret[k1i, k2i, k3i] += uval * adjoint(k1nu[sidx]) *
+            adjoint(k2nu[sidx]) * k3nu[sidx] * k4nu[sidx]
         end
     end
     return ret
@@ -236,7 +238,7 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
         throw(error("pat数量对不上"))
     end
     #
-    ret = zeros(2, 2, 2, 2, npat, npat, npat)
+    ret = zeros(ComplexF64, 2, 2, 2, 2, npat, npat, npat)
     place_holder = Array{Int8, 3}(undef, npat, npat, npat)
     #六度对称
     symmsector = Int64(npat // 6)
@@ -261,8 +263,8 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
         _, k4nu, _ = get_kagome_ν(k4v.x, k4v.y)
         #计算数值
         for sidx in 1:1:3
-            ret[1, 1, 1, 1, k1i, k2i, k3i] += u1val * k1nu[sidx] *
-            k2nu[sidx] * k3nu[sidx] * k4nu[sidx]
+            ret[1, 1, 1, 1, k1i, k2i, k3i] += u1val * adjoint(k1nu[sidx]) *
+            adjoint(k2nu[sidx]) * k3nu[sidx] * k4nu[sidx]
         end
     end
     #第二条是靠下的能带
@@ -283,8 +285,8 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
         _, _, k4nu = get_kagome_ν(k4v.x, k4v.y)
         #计算数值
         for sidx in 1:1:3
-            ret[2, 2, 2, 2, k1i, k2i, k3i] += u2val * k1nu[sidx] *
-            k2nu[sidx] * k3nu[sidx] * k4nu[sidx]
+            ret[2, 2, 2, 2, k1i, k2i, k3i] += u2val * adjoint(k1nu[sidx]) *
+            adjoint(k2nu[sidx]) * k3nu[sidx] * k4nu[sidx]
         end
     end
     #能带之间的相互作用
@@ -323,10 +325,10 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
         #对于同能带U来说，自旋的求和up，dn和dn，up重复两次，再除2，正好一倍
         #对于不同能带U来说，自旋求和本来就有，能带指标1221,2112的重复刚好和除2抵消。
         for sidx in 1:1:3
-            ret[1, 2, 2, 1, k1i, k2i, k3i] += upval * k11nu[sidx] *
-            k22nu[sidx] * k32nu[sidx] * k41nu[sidx]
-            ret[2, 1, 1, 2, k1i, k2i, k3i] += upval * k12nu[sidx] *
-            k21nu[sidx] * k31nu[sidx] * k42nu[sidx]
+            ret[1, 2, 2, 1, k1i, k2i, k3i] += upval * adjoint(k11nu[sidx]) *
+            adjoint(k22nu[sidx]) * k32nu[sidx] * k41nu[sidx]
+            ret[2, 1, 1, 2, k1i, k2i, k3i] += upval * adjoint(k12nu[sidx]) *
+            adjoint(k21nu[sidx]) * k31nu[sidx] * k42nu[sidx]
         end
     end
     #不利用对称性则直接返回
@@ -356,7 +358,7 @@ function get_wuxx_U_mt(Γ4, u1val, u2val, upval; usesymm=true)
         ret[2, 1, 1, 2, 1:symmsector, nk2i, nk3i]
         #
     end
-    retnew = zeros(2, 2, 2, 2, npat, npat, npat)
+    retnew = zeros(ComplexF64, 2, 2, 2, 2, npat, npat, npat)
     #反转对称性
     @Threads.threads for idxs in CartesianIndices(retnew)
         b1, b2, b3, b4, i1, i2, i3 = Tuple(idxs)
